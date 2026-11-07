@@ -93,7 +93,29 @@
   $("open-nostalgex").addEventListener("click",()=>{window.location.href=NOSTALGEX_URL;});
   $("favorites-toggle").addEventListener("click",()=>{state.favoritesOnly=!state.favoritesOnly;state.bundle="all";updateFilters();render();});
   $("search").addEventListener("input",render);
+  function moveFocus(direction){
+    const active=document.activeElement;
+    if(active&&active.tagName==="INPUT")return false;
+    const candidates=[...document.querySelectorAll("button:not([disabled]),input:not([disabled])")]
+      .filter(el=>el.offsetParent!==null&&!el.closest("[hidden]"));
+    if(!candidates.includes(active))return false;
+    const a=active.getBoundingClientRect(), ax=a.left+a.width/2, ay=a.top+a.height/2;
+    let best=null,bestScore=Infinity;
+    for(const el of candidates){
+      if(el===active)continue;
+      const r=el.getBoundingClientRect(), dx=(r.left+r.width/2)-ax, dy=(r.top+r.height/2)-ay;
+      const primary=direction==="left"?-dx:direction==="right"?dx:direction==="up"?-dy:dy;
+      if(primary<=1)continue;
+      const cross=(direction==="left"||direction==="right")?Math.abs(dy):Math.abs(dx);
+      const score=primary+cross*1.8;
+      if(score<bestScore){best=el;bestScore=score;}
+    }
+    if(best){best.focus();best.scrollIntoView({block:"nearest",inline:"nearest"});return true;}
+    return false;
+  }
   document.addEventListener("keydown",e=>{
+    const arrows={37:"left",38:"up",39:"right",40:"down"};
+    if(arrows[e.keyCode]&&moveFocus(arrows[e.keyCode])){e.preventDefault();return;}
     if(!$("modal").hidden){
       if(e.key==="Escape"||e.key==="Backspace"){e.preventDefault();closeModal();}
       return;
