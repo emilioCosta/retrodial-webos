@@ -1,39 +1,56 @@
-# RetroDial 0.3.0
+# RetroDial 0.4.0
 
-RetroDial is an independent, TV-first personal media channel application. It uses Jellyfin as its media library and playback server. It does not require the Nostalgex web UI or a Plex/Jellyfin provider selection screen.
+RetroDial is an independent, TV-first personal media application for LG webOS. Jellyfin remains the media library and playback server; the TV interface does not open Nostalgex or ask the viewer to choose a provider or log in.
+
+## TV experience in this release
+
+- Home screen with channel rails and a direct "watch now" action.
+- Channel browser and a guide-style grid built from the items available in each Jellyfin channel.
+- Selecting a channel can start its first item immediately; the channel page also offers an explicit Watch Now action.
+- Full-screen playback with play/pause, previous/next item, and channel up/down controls.
+- Automatic next-item playback when the current video ends, while items remain in the selected channel.
+- Remote-friendly focus outlines, directional navigation, OK/Enter selection, and Back/Escape handling.
+
+## Important guide and playback limitations
+
+The guide in 0.4.0 is an **illustrative, locally generated guide**, not a real broadcast EPG. It uses sample items returned by the RetroDial API and displays them in guide rows; it does not contain broadcaster schedules, accurate programme start/end times, or live TV streams. The "Now" and following slots are a presentation of the personal library, not a claim that a programme is currently airing.
+
+Channel playback is also an on-demand sequence from the channel's Jellyfin item list. Automatic next-item playback advances through that list; it is not yet a 24/7 playout scheduler. The order follows the list returned by the API, and the current release does not promise episode-order normalization for every series.
 
 ## Architecture
 
-- `server/index.js`: small Node.js API that authenticates to one configured Jellyfin account, discovers its Movie/Episode library, creates thematic channels from actual library genres and metadata, and proxies playback.
-- `index.html`, `style.css`, `app.js`: RetroDial's own television interface.
+- `server/index.js`: Node.js API authenticating to the configured Jellyfin account, discovering Movie/Episode items, creating thematic channels, and proxying images and streams.
+- `index.html`, `style.css`, `app.js`: standalone RetroDial TV interface.
 - `docker-compose.yml`: NAS deployment on host port 8100.
 
 ## Jellyfin configuration
 
-Defaults are set for this installation:
-- Jellyfin: `http://192.168.1.33:8096`
-- Username: `a`
-- Password: `a`
-
-Override with `JELLYFIN_URL`, `JELLYFIN_USERNAME`, and `JELLYFIN_PASSWORD`. Credentials are stored only in the NAS container environment, not in the webOS app.
+The server reads `JELLYFIN_URL`, `JELLYFIN_USERNAME`, and `JELLYFIN_PASSWORD` from its environment. The credentials stay on the NAS; they are not embedded in the webOS app. The current installation defaults are documented in the deployment environment, not in the client.
 
 ## Deploy API on OpenMediaVault
 
-Copy the repository to the NAS (or use the folder containing these files), then run:
+From the project directory on the NAS, copy `.env.example` to `.env` and fill in the Jellyfin credentials (the compose file refuses to start without them):
 
 ```bash
+cp .env.example .env
 docker compose up -d --build
 docker logs -f retrodial-api
 ```
 
-API health check: `http://NAS-IP:8100/api/health`.
+Health check: `http://NAS-IP:8100/api/health`.
 
-The webOS client needs to be hosted from the same origin as this API, or configured to use the API base URL. The current webOS package is a static client; for a standalone IPK, package the static client with a local API URL pointing at the NAS.
+## Package for LG webOS
 
-## Important scope
+Package the static webOS client with the installed webOS CLI tools. Confirm the API base URL (`DEFAULT_API` in `app.js`) points to the NAS, and increment `appinfo.json` version for each release. The IPK must be installed on the TV after packaging; updating GitHub does not update the installed TV app automatically.
 
-This first independent release creates channels dynamically from the media actually found in Jellyfin. It is not yet a continuous 24/7 schedule: deterministic per-channel scheduling, automatic next-item playback, guide grid/EPG, resume/continue watching, and richer collection/franchise inference are planned next. It scans the first 10,000 Movie/Episode records; larger libraries will need pagination.
+## Test checklist
 
-## Credentials and security
+1. Launch RetroDial directly, without Nostalgex or a login screen.
+2. Navigate the home screen, channel list, and guide using the LG remote.
+3. Confirm the focus indicator is visible and consistent.
+4. Open a channel and start playback.
+5. Test play/pause, Back, previous/next item, and channel up/down.
+6. Let an item finish to verify automatic next-item playback when the channel has another item.
+7. Record failures with a description and, if possible, a photo or video.
 
-The default `a/a` credentials are installation-specific. The server should be reachable only on the trusted home network. Prefer a dedicated Jellyfin user with read-only library access and a unique password.
+The guide is illustrative and the channel sequence is on-demand; do not treat them as live broadcast EPG or 24/7 playout features.
