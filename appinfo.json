@@ -1,7 +1,7 @@
 {
   "id": "com.emilio.retrodial",
-  "version": "0.2.0",
-  "vendor": "Independent community project",
+  "version": "0.3.0",
+  "vendor": "RetroDial contributors",
   "type": "web",
   "main": "index.html",
   "title": "RetroDial",
