@@ -1,0 +1,56 @@
+:root {
+  color-scheme: dark;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #101014;
+  color: #f5f0e8;
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body {
+  background:
+    radial-gradient(ellipse at 78% 42%, rgba(131, 73, 42, .22), transparent 42%),
+    linear-gradient(115deg, #101014 0%, #191719 58%, #211813 100%);
+}
+.screen {
+  min-height: 100vh;
+  padding: 4.4vh 6.2vw 3.4vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.topbar, footer { display: flex; align-items: center; justify-content: space-between; }
+.topbar { justify-content: flex-start; gap: 16px; }
+.brand-mark {
+  width: 42px; height: 42px; border: 1px solid #bb8057; border-radius: 13px;
+  display: grid; place-items: center; color: #e5ad7e; font-size: 17px;
+}
+.brand { font-size: 19px; letter-spacing: .2em; font-weight: 800; }
+.brand span { color: #d99b6b; }
+.edition { color: #8c8179; font-size: 11px; letter-spacing: .22em; margin-left: 8px; }
+.hero { width: min(690px, 70vw); margin: auto 0; padding: 5vh 0 6vh 5.4vw; }
+.eyebrow { color: #d99b6b; letter-spacing: .28em; font-size: 13px; font-weight: 700; }
+h1 { font-size: clamp(56px, 6.6vw, 94px); line-height: .98; letter-spacing: -.055em; margin: 22px 0; }
+h1 em { color: #d99b6b; font-style: normal; }
+.intro { color: #b8ada4; font-size: 20px; margin: 0 0 36px; }
+.connection-panel { width: min(510px, 65vw); display: grid; gap: 12px; }
+label { color: #93877f; font-size: 11px; letter-spacing: .18em; font-weight: 700; }
+input {
+  width: 100%; border: 1px solid #4a3b33; border-radius: 8px; padding: 17px 18px;
+  color: #f5f0e8; background: rgba(10, 10, 12, .65); font-size: 17px;
+}
+button {
+  min-height: 58px; border: 0; border-radius: 8px; padding: 0 22px;
+  background: #d99b6b; color: #211711; font-size: 14px; font-weight: 800;
+  letter-spacing: .12em; text-align: left; cursor: pointer;
+}
+button span { float: right; font-size: 22px; line-height: 15px; }
+button:focus, input:focus { outline: 3px solid #f4d0ae; outline-offset: 4px; }
+#status { color: #8e837b; font-size: 12px; margin: 2px 0 0; }
+footer { color: #766d68; font-size: 10px; letter-spacing: .12em; }
+.dot { color: #d99b6b; padding: 0 7px; }
+.remote-hint { color: #a69a91; }
+@media (max-width: 900px) {
+  .hero { padding-left: 1vw; width: 90vw; }
+  .connection-panel { width: min(560px, 85vw); }
+  footer { gap: 20px; }
+}
