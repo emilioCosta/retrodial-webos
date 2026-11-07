@@ -1,0 +1,12 @@
+{
+  "id": "com.emilio.retrodial",
+  "version": "0.1.0",
+  "vendor": "Independent community project",
+  "type": "web",
+  "main": "index.html",
+  "title": "RetroDial",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "bgColor": "#101014"
+}
