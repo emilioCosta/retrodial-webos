@@ -1,12 +1,14 @@
 (() => {
 "use strict";
-const API="http://192.168.1.33:8100/api";
+const DEFAULT_API="http://192.168.1.33:8100/api";
+const API=(()=>{try{return window.RETRODIAL_API||localStorage.getItem("retrodial.api")||DEFAULT_API;}catch(e){return DEFAULT_API;}})();
 const $=id=>document.getElementById(id);
 const state={channels:[],libraryCount:0,activeView:"home",items:[],channel:null,channelIndex:0,itemIndex:0,loading:false};
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;",'"':"&quot;","'":"&#39;"}[c]));
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const image=id=>API+"/image/"+encodeURIComponent(id);
+let lastFocus=null;
 const isPlayer=()=>$("player").hidden===false;
-async function request(path){const r=await fetch(API+path);const d=await r.json();if(!r.ok)throw new Error(d.error||"Falha ao consultar o RetroDial");return d;}
+async function request(path){const ctl=typeof AbortController!=="undefined"?new AbortController():null;const t=ctl&&setTimeout(()=>ctl.abort(),15000);let r;try{r=await fetch(API+path,ctl?{signal:ctl.signal}:{});}catch(e){throw new Error("Sem resposta do servidor RetroDial");}finally{if(t)clearTimeout(t);}const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Falha ao consultar o RetroDial");return d;}
 function toast(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2200);}
 function playerToast(message){const el=$("player-toast");el.textContent=message;el.classList.add("show");clearTimeout(playerToast.timer);playerToast.timer=setTimeout(()=>el.classList.remove("show"),1700);}
 function channelCard(c){return `<button class="channel-card" data-channel="${esc(c.id)}"><div class="channel-art"><span>${esc((c.name||"R").slice(0,1))}</span><small>${String(c.number||0).padStart(2,"0")}</small></div><div class="channel-copy"><strong>${esc(c.name)}</strong><small>${Number(c.count||0).toLocaleString("pt-BR")} títulos · ${esc(c.description||"")}</small></div></button>`;}
@@ -51,15 +53,15 @@ function setView(name){
  const target=document.querySelector("#"+name+"-view button, #"+name+"-view [tabindex]");
  if(target)target.focus({preventScroll:true});
 }
-async function loadChannel(id){
+async function loadChannel(id,opts){opts=opts||{};
  const channel=state.channels.find(c=>c.id===id);if(!channel)throw new Error("Canal não encontrado");
  const data=await request("/channels/"+encodeURIComponent(id)+"/items");
- state.channel=channel;state.items=data.items||[];state.channelIndex=state.channels.findIndex(c=>c.id===id);$("channel-play").onclick=()=>startChannel(channel.id);
+ state.channel=channel;state.items=data.items||[];state.channelIndex=state.channels.findIndex(c=>c.id===id);
  $("channel-title").textContent=channel.name;$("channel-description").textContent=channel.description||"";
  $("channel-number").textContent=String(channel.number).padStart(2,"0");
  $("channel-count").textContent=state.items.length+" títulos";
  $("channel-programs").innerHTML=state.items.slice(0,24).map((item,i)=>`<button class="program-card" data-program-index="${i}"><span class="program-poster"><img loading="lazy" src="${image(item.id)}" onerror="this.style.display='none'"><b>${esc(item.name.slice(0,1))}</b></span><strong>${esc(item.name)}</strong><small>${esc(item.series||item.year||item.type||"")}</small></button>`).join("");
- setView("channel");
+ if(!opts.silent)setView("channel");
 }
 async function openChannel(id){try{await loadChannel(id);}catch(e){toast(e.message);}}
 function updatePlayerInfo(item){
@@ -71,8 +73,10 @@ function updatePlayerInfo(item){
 function playIndex(index){
  if(index<0||index>=state.items.length){playerToast("Fim da programação deste canal");return;}
  state.itemIndex=index;const item=state.items[index];const video=$("video");
+ if($("player").hidden)lastFocus=document.activeElement;
  updatePlayerInfo(item);$("player").hidden=false;
  $("player-back").focus();
+ $("progress-fill").style.width="0%";
  video.pause();video.src=API+"/stream/"+encodeURIComponent(item.id);video.load();
  const p=video.play();if(p&&p.catch)p.catch(()=>playerToast("Pressione OK para iniciar a reprodução"));
  $("toggle-play").innerHTML="Ⅱ <span>PAUSAR</span>";
@@ -85,10 +89,10 @@ async function zapChannel(delta){
  const next=state.channelIndex+delta;
  if(next<0||next>=state.channels.length){playerToast("Não há mais canais nesta direção");return;}
  const wasPlaying=!$("video").paused;
- try{const c=state.channels[next];await loadChannel(c.id);if(state.items.length&&wasPlaying)playIndex(0);else playerToast("Canal "+String(c.number).padStart(2,"0")+" · "+c.name);}
+ try{const c=state.channels[next];await loadChannel(c.id,{silent:true});if(!state.items.length){playerToast("Canal "+String(c.number).padStart(2,"0")+" sem itens");return;}if(wasPlaying){playIndex(0);}else{state.itemIndex=0;updatePlayerInfo(state.items[0]);}playerToast("Canal "+String(c.number).padStart(2,"0")+" · "+c.name);}
  catch(e){playerToast(e.message);}
 }
-function closePlayer(){const v=$("video");v.pause();v.removeAttribute("src");v.load();$("player").hidden=true;const focus=$("channel-play");if(focus)focus.focus();}
+function closePlayer(){const v=$("video");v.pause();v.removeAttribute("src");v.load();$("player").hidden=true;const f=lastFocus&&document.contains(lastFocus)&&!lastFocus.closest("[hidden]")?lastFocus:document.querySelector("#"+state.activeView+"-view button");if(f&&f.focus)f.focus({preventScroll:true});}
 function togglePlay(){const v=$("video");if(v.paused){v.play().catch(()=>playerToast("Não foi possível iniciar"));$("toggle-play").innerHTML="Ⅱ <span>PAUSAR</span>";}else{v.pause();$("toggle-play").innerHTML="▶ <span>REPRODUZIR</span>";}}
 function moveFocus(direction){
  const active=document.activeElement;
@@ -101,12 +105,18 @@ function moveFocus(direction){
 function handleBack(){if(isPlayer()){closePlayer();return true;}if(state.activeView==="channel"){setView("channels");return true;}if(state.activeView!=="home"){setView("home");return true;}return false;}
 function onKey(e){
  const key=e.key;const code=e.keyCode||e.which;
- if(key==="Escape"||key==="Backspace"||key==="GoBack"||code===461){if(handleBack()){e.preventDefault();e.stopPropagation();}return;}
+ const typing=document.activeElement&&document.activeElement.tagName==="INPUT";
+ if(key==="Escape"||(key==="Backspace"&&!typing)||key==="GoBack"||code===461||(code===27&&!typing)){if(handleBack()){e.preventDefault();e.stopPropagation();}return;}
  if(isPlayer()){
   if(key==="ArrowUp"||key==="ChannelUp"||code===33){e.preventDefault();zapChannel(1);return;}
   if(key==="ArrowDown"||key==="ChannelDown"||code===34){e.preventDefault();zapChannel(-1);return;}
   if(key==="ArrowLeft"||key==="ArrowRight"){const v=$("video");if(Number.isFinite(v.duration)){e.preventDefault();v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+(key==="ArrowRight"?10:-10)));}return;}
-  if(key===" "||key==="Enter"||code===415||code===19){e.preventDefault();togglePlay();return;}
+  const onControl=document.activeElement&&document.activeElement.closest&&document.activeElement.closest(".player button");
+  if(key==="Enter"&&onControl)return;
+  if(key===" "||key==="Enter"||code===415||code===19){e.preventDefault();const v=$("video");if(code===415&&!v.paused)return;if(code===19&&v.paused)return;togglePlay();return;}
+  if(code===412){e.preventDefault();playIndex(Math.max(0,state.itemIndex-1));return;}
+  if(code===417){e.preventDefault();playIndex(state.itemIndex+1);return;}
+  if(code===413){e.preventDefault();togglePlay();return;}
   return;
  }
  if(key.startsWith("Arrow")&&!(document.activeElement&&document.activeElement.tagName==="INPUT"&&(key==="ArrowLeft"||key==="ArrowRight"))){e.preventDefault();moveFocus(key);return;}
@@ -119,7 +129,6 @@ async function init(){
   $("connection-status").textContent=health.jellyfin==="connected"?"CONECTADO AO JELLYFIN":"SERVIDOR ONLINE";
   $("library-count").textContent=state.libraryCount.toLocaleString("pt-BR");
   renderHome();renderChannels();renderGuide();
-  if(state.channels.length){const first=state.channels[0];$("channel-play").onclick=()=>startChannel(first.id);}
   setView("home");
  }catch(e){$("connection-status").textContent="SERVIDOR INDISPONÍVEL";$("error-message").textContent=e.message;$("error-view").hidden=false;}
 }
@@ -142,6 +151,9 @@ $("previous-item").addEventListener("click",()=>playIndex(Math.max(0,state.itemI
 $("channel-up").addEventListener("click",()=>zapChannel(1));
 $("channel-down").addEventListener("click",()=>zapChannel(-1));
 $("video").addEventListener("ended",()=>{if(state.itemIndex+1<state.items.length)playIndex(state.itemIndex+1);else playerToast("Fim dos episódios deste canal");});
+$("video").addEventListener("error",()=>{if(!state.items.length||$("player").hidden)return;if(state.itemIndex+1<state.items.length){playerToast("Item indisponível, pulando para o próximo");setTimeout(()=>{if(!$("player").hidden)playIndex(state.itemIndex+1);},800);}else playerToast("Não foi possível reproduzir este item");});
+$("video").addEventListener("play",()=>{$("toggle-play").innerHTML="Ⅱ <span>PAUSAR</span>";});
+$("video").addEventListener("pause",()=>{if(!$("video").ended)$("toggle-play").innerHTML="▶ <span>REPRODUZIR</span>";});
 $("video").addEventListener("timeupdate",()=>{const v=$("video");$("progress-fill").style.width=(v.duration?100*v.currentTime/v.duration:0)+"%";});
 $("search").addEventListener("input",()=>{renderChannels();renderGuide();});
 $("retry").addEventListener("click",()=>{$("error-view").hidden=true;init();});

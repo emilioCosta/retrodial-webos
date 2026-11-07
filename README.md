@@ -29,9 +29,10 @@ The server reads `JELLYFIN_URL`, `JELLYFIN_USERNAME`, and `JELLYFIN_PASSWORD` fr
 
 ## Deploy API on OpenMediaVault
 
-From the project directory on the NAS:
+From the project directory on the NAS, copy `.env.example` to `.env` and fill in the Jellyfin credentials (the compose file refuses to start without them):
 
 ```bash
+cp .env.example .env
 docker compose up -d --build
 docker logs -f retrodial-api
 ```
@@ -40,7 +41,7 @@ Health check: `http://NAS-IP:8100/api/health`.
 
 ## Package for LG webOS
 
-Package the static webOS client with the installed webOS CLI tools. Confirm the API base URL in `app.js` points to the NAS, and increment `appinfo.json` version for each release. The IPK must be installed on the TV after packaging; updating GitHub does not update the installed TV app automatically.
+Package the static webOS client with the installed webOS CLI tools. Confirm the API base URL (`DEFAULT_API` in `app.js`) points to the NAS, and increment `appinfo.json` version for each release. The IPK must be installed on the TV after packaging; updating GitHub does not update the installed TV app automatically.
 
 ## Test checklist
 

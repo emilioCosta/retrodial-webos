@@ -3,13 +3,16 @@ const { URL } = require("node:url");
 
 const PORT = Number(process.env.PORT || 3000);
 const JELLYFIN_URL = (process.env.JELLYFIN_URL || "http://192.168.1.33:8096").replace(/\/$/, "");
-const USERNAME = process.env.JELLYFIN_USERNAME || "a";
-const PASSWORD = process.env.JELLYFIN_PASSWORD || "a";
+const USERNAME = process.env.JELLYFIN_USERNAME || "";
+const PASSWORD = process.env.JELLYFIN_PASSWORD || "";
+const VERSION = require("../package.json").version;
 const APP_NAME = "RetroDial";
 const DEVICE_ID = "retrodial-webos";
 let auth = null;
 let libraryCache = { at: 0, items: [] };
 let channelItemCache = new Map();
+let channelsCache = { at: 0, channels: [] };
+let authPromise = null;
 
 function json(res, status, value) {
   const body = JSON.stringify(value);
@@ -17,9 +20,15 @@ function json(res, status, value) {
   res.end(body);
 }
 function headers(token) {
-  return { "X-Emby-Authorization": 'MediaBrowser Client="' + APP_NAME + '", Device="webOS TV", DeviceId="' + DEVICE_ID + '", Version="0.3.0"', ...(token ? { "X-MediaBrowser-Token": token } : {}) };
+  return { "X-Emby-Authorization": 'MediaBrowser Client="' + APP_NAME + '", Device="webOS TV", DeviceId="' + DEVICE_ID + '", Version="' + VERSION + '"', ...(token ? { "X-MediaBrowser-Token": token } : {}) };
 }
 async function authenticate() {
+  if (authPromise) return authPromise;
+  authPromise = doAuthenticate().finally(() => { authPromise = null; });
+  return authPromise;
+}
+async function doAuthenticate() {
+  if (!USERNAME || !PASSWORD) throw new Error("JELLYFIN_USERNAME e JELLYFIN_PASSWORD não configurados");
   const response = await fetch(JELLYFIN_URL + "/Users/AuthenticateByName", {
     method: "POST",
     headers: { ...headers(), "Content-Type": "application/json" },
@@ -47,12 +56,13 @@ async function getLibrary(force = false) {
   if (!response.ok) throw new Error("Jellyfin library request failed (HTTP " + response.status + ")");
   const data = await response.json();
   libraryCache = { at: Date.now(), items: data.Items || [] };
+  channelsCache = { at: 0, channels: [] };
   return libraryCache.items;
 }
 const norm = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function buildChannels(items) {
   const movies = items.filter(x => x.Type === "Movie");
-  const episodes = items.filter(x => x.Type === "Episode");
+  const episodes = items.filter(x => x.Type === "Episode").sort((a,b)=>String(a.SeriesName||"").localeCompare(String(b.SeriesName||""))||(a.ParentIndexNumber||0)-(b.ParentIndexNumber||0)||(a.IndexNumber||0)-(b.IndexNumber||0));
   const allGenres = [...new Set(items.flatMap(x => x.Genres || []))].sort((a,b)=>a.localeCompare(b));
   const definitions = [
     ["all","ACERVO COMPLETO","Tudo que existe na biblioteca",items],
@@ -87,21 +97,27 @@ function buildChannels(items) {
 function itemSummary(x) {
   return { id:x.Id,name:x.Name,type:x.Type,year:x.ProductionYear||null,series:x.SeriesName||null,genres:x.Genres||[],overview:x.Overview||"",runtimeTicks:x.RunTimeTicks||0,season:x.ParentIndexNumber||null,episode:x.IndexNumber||null };
 }
+function getChannels(items) {
+  if (channelsCache.channels.length && channelsCache.items === items) return channelsCache.channels;
+  const channels = buildChannels(items);
+  channelsCache = { at: Date.now(), channels, items };
+  return channels;
+}
 async function route(req,res) {
   const url = new URL(req.url, "http://localhost");
   if (req.method === "OPTIONS") { res.writeHead(204, { "Access-Control-Allow-Origin":"*", "Access-Control-Allow-Headers":"Range,Content-Type", "Access-Control-Allow-Methods":"GET,OPTIONS" }); return res.end(); }
   if (url.pathname === "/api/health") {
-    try { await authenticate(); return json(res,200,{ok:true,service:"RetroDial",jellyfin:"connected",user:auth.userName}); }
+    try { if (!auth) await authenticate(); return json(res,200,{ok:true,service:"RetroDial",jellyfin:"connected",user:auth.userName}); }
     catch(e){return json(res,503,{ok:false,error:e.message});}
   }
   if (url.pathname === "/api/channels") {
-    try { const items=await getLibrary(url.searchParams.get("refresh")==="1"); const channels=buildChannels(items); return json(res,200,{channels,libraryCount:items.length,generatedAt:new Date().toISOString(),genres: [...new Set(items.flatMap(x=>x.Genres||[]))].sort()}); }
+    try { const items=await getLibrary(url.searchParams.get("refresh")==="1"); const channels=getChannels(items); return json(res,200,{channels,libraryCount:items.length,generatedAt:new Date().toISOString(),genres: [...new Set(items.flatMap(x=>x.Genres||[]))].sort()}); }
     catch(e){return json(res,502,{error:e.message});}
   }
   const channelMatch=url.pathname.match(/^\/api\/channels\/([^/]+)\/items$/);
   if (channelMatch) {
     try {
-      const items=await getLibrary(), channels=buildChannels(items), channel=channels.find(c=>c.id===decodeURIComponent(channelMatch[1]));
+      const items=await getLibrary(), channels=getChannels(items), channel=channels.find(c=>c.id===decodeURIComponent(channelMatch[1]));
       if(!channel)return json(res,404,{error:"Canal não encontrado"});
       const full=channelItemCache.get(channel.id)||[];
       return json(res,200,{channel,items:full.map(itemSummary)});
@@ -121,8 +137,9 @@ async function route(req,res) {
   if (streamMatch) {
     try {
       const range=req.headers.range;
+      const ctl=new AbortController();res.on("close",()=>ctl.abort());
       const target="/Videos/"+encodeURIComponent(streamMatch[1])+"/stream?static=true&api_key="+encodeURIComponent(auth?.token || (await authenticate()).token);
-      const upstream=await jellyfin(target,{headers:range?{Range:range}:{}});
+      const upstream=await jellyfin(target,{headers:range?{Range:range}:{},signal:ctl.signal});
       res.writeHead(upstream.status,{
         "Content-Type":upstream.headers.get("content-type")||"video/mp4",
         "Accept-Ranges":upstream.headers.get("accept-ranges")||"bytes",
@@ -135,7 +152,7 @@ async function route(req,res) {
       const reader=upstream.body.getReader();
       while(true){const {done,value}=await reader.read();if(done)break;if(!res.write(value))await new Promise(resolve=>res.once("drain",resolve));}
       return res.end();
-    }catch(e){return json(res,502,{error:e.message});}
+    }catch(e){if(e.name==="AbortError"){return res.end();}if(res.headersSent){return res.end();}return json(res,502,{error:e.message});}
   }
   return json(res,404,{error:"Rota não encontrada"});
 }
