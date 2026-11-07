@@ -1,10 +1,10 @@
 (() => {
 "use strict";
-const API="/api";
+const API="http://192.168.1.33:8100/api";
 const state={channels:[],active:"all",items:[],favorites:new Set(JSON.parse(localStorage.getItem("retrodial-favorites")||"[]")),query:"",playing:null};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const image=id=>"/api/image/"+encodeURIComponent(id);
+const image=id=>API+"/image/"+encodeURIComponent(id);
 function save(){localStorage.setItem("retrodial-favorites",JSON.stringify([...state.favorites]));}
 function toast(s){$("toast").textContent=s;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),1800);}
 async function request(path){const r=await fetch(API+path);const data=await r.json();if(!r.ok)throw new Error(data.error||"Falha ao consultar servidor");return data;}
@@ -39,7 +39,7 @@ async function play(id){
   const item=state.items.find(x=>x.id===id);if(!item)return;
   $("player-title").textContent=item.name;
   $("player").hidden=false;
-  const video=$("video");video.src="/api/stream/"+encodeURIComponent(id);video.play().catch(()=>toast("Pressione OK para iniciar a reprodução"));
+  const video=$("video");video.src=API+"/stream/"+encodeURIComponent(id);video.play().catch(()=>toast("Pressione OK para iniciar a reprodução"));
   state.playing=id;
  }catch(e){toast(e.message);}
 }
