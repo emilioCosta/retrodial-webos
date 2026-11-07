@@ -78,7 +78,7 @@
     const previousId=state.selected;
     $("modal").hidden=true;
     state.selected=null;
-    if(!fromPop&&history.state&&history.state.retrodialModal){history.back();return;}
+    if(!fromPop&&history.state&&history.state.retrodialModal)history.back();
     const card=document.querySelector('.channel-card[data-id="'+previousId+'"]');
     if(card)card.focus();
   }
