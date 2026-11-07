@@ -36,7 +36,7 @@ function renderGuide(){
   const offset=(i*3)%Math.max(sample.length,1);
   const slots=[0,1,2].map((n)=>{
    const item=sample[(offset+n)%Math.max(sample.length,1)];
-   return `<button class="guide-program ${n===0?"current":""}" data-guide-channel="${esc(c.id)}" data-guide-item="${esc(item?.id||"")}"><small>${n===0?"AGORA":timeLabel(n*30)}</small><strong>${esc(item?.name||"Programação do canal")}</strong><em>${esc(item?.series||item?.year||"Do seu acervo")}</em></button>`;
+   return `<button class="guide-program ${n===0?"current":""}" data-guide-channel="${esc(c.id)}" data-guide-item="${esc(item?.id||"")}"><small>${["EM DESTAQUE","NA SEQUÊNCIA","DEPOIS"][n]}</small><strong>${esc(item?.name||"Programação do canal")}</strong><em>${esc(item?.series||item?.year||"Do seu acervo")}</em></button>`;
   }).join("");
   return `<div class="guide-row"><div class="guide-channel"><span class="guide-channel-mark">${esc((c.name||"R").slice(0,1))}</span><span><strong>${esc(c.name)}</strong><small>CANAL ${String(c.number).padStart(2,"0")} · ${c.count} itens</small></span></div><div class="guide-programs">${slots}</div></div>`;
  }).join("")||'<p class="subtle">Nenhum canal encontrado.</p>';
