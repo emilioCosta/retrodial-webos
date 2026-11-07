@@ -3,35 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Acesso rápido aos canais do Nostalgex na sua TV LG.">
+  <meta name="theme-color" content="#080810">
   <title>RetroDial</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="screen">
+  <main class="screen" aria-live="polite">
     <header class="topbar">
       <div class="brand-mark" aria-hidden="true">▶</div>
       <span class="brand">RETRO<span>DIAL</span></span>
       <span class="edition">TV EDITION</span>
     </header>
-
     <section class="hero">
-      <p class="eyebrow">SUA TV. SEUS CLÁSSICOS.</p>
-      <h1>Volte para<br><em>o que importa.</em></h1>
-      <p class="intro">Entre no seu universo de canais e desenhos favoritos.</p>
-
+      <p class="eyebrow">CONECTANDO AO SEU SERVIDOR</p>
+      <h1>A sua TV.<br><em>O seu Nostalgex.</em></h1>
+      <p class="intro" id="connection-status">Abrindo a experiência original do Nostalgex…</p>
       <div class="connection-panel">
-        <label for="server-url">ENDEREÇO DO NOSTALGEX</label>
-        <input id="server-url" type="url" value="http://192.168.1.33:8080"
-          autocomplete="url" spellcheck="false">
-        <button id="open-guide" type="button">ABRIR GUIA <span aria-hidden="true">→</span></button>
-        <p id="status" role="status">Servidor configurado. Pressione OK para continuar.</p>
+        <button id="retry" type="button" hidden>TENTAR NOVAMENTE <span aria-hidden="true">→</span></button>
+        <p id="fallback" role="status">Se esta tela permanecer aberta, verifique se o NAS está ligado e acessível pela rede.</p>
       </div>
     </section>
-
     <footer>
-      <span>RETRODIAL <span class="dot">•</span> UM CONTROLE SIMPLES PARA SEUS CANAIS</span>
-      <span class="remote-hint">MAGIC REMOTE · OK PARA ABRIR</span>
+      <span>RETRODIAL <span class="dot">•</span> CLIENTE WEBOS PARA NOSTALGEX</span>
+      <span class="remote-hint">A INTERFACE E A REPRODUÇÃO SÃO DO NOSTALGEX</span>
     </footer>
   </main>
   <script src="app.js"></script>
