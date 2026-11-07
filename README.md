@@ -1,50 +1,43 @@
 # RetroDial
 
-A minimal webOS TV client for a self-hosted [Nostalgex](https://github.com/chadMueller/Nostalgex) instance.
+A television-first webOS client and companion interface for a self-hosted [Nostalgex](https://github.com/chadMueller/Nostalgex) installation.
 
-## Design goal
+## Current version: 0.2.0
 
-RetroDial does **not** reimplement Nostalgex. It launches the original self-hosted Nostalgex web tuner directly inside the webOS app's web runtime. The guide, channel lineup, server connection/sign-in, schedules, and video playback remain the original Nostalgex implementation running on the NAS.
+This release introduces an independent TV-oriented channel catalogue interface.
 
-This keeps one source of truth and avoids maintaining a second player or channel guide.
+- Bundles the upstream Nostalgex channel configuration (142 channels, 14 bundles, config v50).
+- Browse all channels, filter by bundle, search by name/number, and save favorites locally.
+- Remote-friendly focus states and keyboard navigation.
+- Channel details show the channel number, source bundle, and a summary of its configured rules.
+- The "Open Nostalgex" action launches the existing NAS web tuner at `http://192.168.1.33:8099/`.
 
-## Configured server
+## Important integration boundary
 
-The current installation is configured to open:
+The bundled catalogue is the complete channel definition currently published by Nostalgex. It is **not** a report of which channels are populated by the user's media library. Actual availability depends on the connected Plex/Jellyfin/Emby library and the Nostalgex filtering, enrichment, and schedule engine.
 
-```
-http://192.168.1.33:8080/
-```
+This first independent UI release does not yet implement native channel tuning or playback. The existing Nostalgex tuner remains responsible for authentication, library scanning, schedule generation, and video playback. Direct integration with the media server and the Nostalgex channel/schedule logic is the next development phase.
 
-To point the app at another server, change `NOSTALGEX_URL` in `app.js`.
+## Data provenance
 
-## Project files
+- `data/channels.json` is copied from `chadMueller/Nostalgex` (MIT), preserving its configuration and attribution.
+- `data/franchises.json` is copied from the same upstream project (MIT).
+- The upstream project name and branding remain the property of their respective owner. RetroDial is an independent community project.
 
-- `appinfo.json` — webOS application metadata
-- `index.html` and `style.css` — brief connection/loading fallback
-- `app.js` — immediate navigation to the original Nostalgex tuner
+## Configure NAS address
 
-## Package for webOS
+Change `NOSTALGEX_URL` in `app.js` if the Nostalgex server address changes.
 
-Install the webOS TV CLI, then run from this directory:
+## Build and install
+
+Install the webOS TV CLI, then run:
 
 ```bash
 ares-package .
-```
-
-Install and launch the resulting package using a paired TV device:
-
-```bash
-ares-install --device YOUR_DEVICE_NAME com.emilio.retrodial_0.1.0_all.ipk
+ares-install --device YOUR_DEVICE_NAME <generated-ipk>
 ares-launch --device YOUR_DEVICE_NAME com.emilio.retrodial
 ```
 
-The package has not yet been built or tested on a physical LG TV.
-
-## Important compatibility note
-
-The app opens the exact same web interface that is already working in the LG TV browser. However, the webOS app runtime and the TV browser may differ in navigation, media codecs, remote-key handling, and playback behavior. Those details must be validated on the TV. If the original tuner works in the browser but not in the app runtime, the next step is to address that specific compatibility issue—not to rewrite the Nostalgex interface.
-
 ## License
 
-RetroDial source code is provided under the MIT License. Nostalgex is a separate upstream project with its own license and notices.
+RetroDial source code is provided under the MIT License. See `LICENSE`. The upstream Nostalgex project has its own MIT license and notices.
