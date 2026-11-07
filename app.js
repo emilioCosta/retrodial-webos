@@ -54,7 +54,7 @@ function setView(name){
 async function loadChannel(id){
  const channel=state.channels.find(c=>c.id===id);if(!channel)throw new Error("Canal não encontrado");
  const data=await request("/channels/"+encodeURIComponent(id)+"/items");
- state.channel=channel;state.items=data.items||[];state.channelIndex=state.channels.findIndex(c=>c.id===id);
+ state.channel=channel;state.items=data.items||[];state.channelIndex=state.channels.findIndex(c=>c.id===id);$("channel-play").onclick=()=>startChannel(channel.id);
  $("channel-title").textContent=channel.name;$("channel-description").textContent=channel.description||"";
  $("channel-number").textContent=String(channel.number).padStart(2,"0");
  $("channel-count").textContent=state.items.length+" títulos";
@@ -72,6 +72,7 @@ function playIndex(index){
  if(index<0||index>=state.items.length){playerToast("Fim da programação deste canal");return;}
  state.itemIndex=index;const item=state.items[index];const video=$("video");
  updatePlayerInfo(item);$("player").hidden=false;
+ $("player-back").focus();
  video.pause();video.src=API+"/stream/"+encodeURIComponent(item.id);video.load();
  const p=video.play();if(p&&p.catch)p.catch(()=>playerToast("Pressione OK para iniciar a reprodução"));
  $("toggle-play").innerHTML="Ⅱ <span>PAUSAR</span>";
