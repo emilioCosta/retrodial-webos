@@ -1,33 +1,57 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#080810">
-  <title>RetroDial</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0d12">
+<title>RetroDial</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="screen" aria-live="polite">
-    <header class="topbar">
-      <div class="brand-mark" aria-hidden="true">▶</div>
-      <span class="brand">RETRO<span>DIAL</span></span>
-      <span class="edition">TV EDITION</span>
-    </header>
-    <section class="hero">
-      <p class="eyebrow">CONECTANDO AO SEU SERVIDOR</p>
-      <h1>A sua TV.<br><em>O seu Nostalgex.</em></h1>
-      <p class="intro" id="connection-status">Abrindo a experiência original do Nostalgex…</p>
-      <div class="connection-panel">
-        <button id="retry" type="button" hidden>TENTAR NOVAMENTE <span aria-hidden="true">→</span></button>
-        <p id="fallback" role="status">Se esta tela permanecer aberta, verifique se o NAS está ligado e acessível pela rede.</p>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">R</span><span>RETRO<span class="brand-accent">DIAL</span></span></div>
+    <div class="topbar-meta"><span class="live-dot"></span><span>SEU ACERVO · SUA TV</span><span class="version">0.2.0</span></div>
+  </header>
+  <main>
+    <section class="welcome">
+      <div class="welcome-copy">
+        <p class="eyebrow">TELEVISÃO DO SEU JEITO</p>
+        <h1>O que vamos<br><em>assistir hoje?</em></h1>
+        <p class="subcopy">Explore os canais do Nostalgex, descubra sua programação e monte sua própria seleção.</p>
+      </div>
+      <div class="catalog-stats">
+        <div><strong id="channel-count">—</strong><span>CANAIS</span></div>
+        <div><strong id="bundle-count">—</strong><span>COLEÇÕES</span></div>
+        <div><strong id="config-version">—</strong><span>CONFIG</span></div>
       </div>
     </section>
-    <footer>
-      <span>RETRODIAL <span class="dot">•</span> CLIENTE WEBOS PARA NOSTALGEX</span>
-      <span class="remote-hint">A INTERFACE E A REPRODUÇÃO SÃO DO NOSTALGEX</span>
-    </footer>
+    <section class="toolbar" aria-label="Filtros de canais">
+      <div class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar canal..." autocomplete="off"></div>
+      <div class="filter-row" id="bundle-filters"><button class="filter active" data-bundle="all">Todos</button></div>
+      <button class="favorites-toggle" id="favorites-toggle" aria-pressed="false">☆ Favoritos</button>
+    </section>
+    <section class="content">
+      <div class="section-heading"><div><p class="eyebrow">GUIA DE CANAIS</p><h2 id="section-title">Todos os canais</h2></div><span class="result-count" id="result-count"></span></div>
+      <div id="channel-grid" class="channel-grid" aria-live="polite"></div>
+      <div id="empty-state" class="empty-state" hidden>Nenhum canal encontrado. Tente outra busca ou coleção.</div>
+    </section>
   </main>
-  <script src="app.js"></script>
+  <footer><span>RETRODIAL <b>•</b> CATÁLOGO NOSTALGEX</span><span>↑ ↓ ← → NAVEGAR&nbsp;&nbsp; · &nbsp;&nbsp;OK SELECIONAR&nbsp;&nbsp; · &nbsp;&nbsp;BACK VOLTAR</span></footer>
+</div>
+<div class="modal-backdrop" id="modal" hidden>
+  <section class="channel-modal" role="dialog" aria-modal="true" aria-labelledby="modal-name">
+    <button class="modal-close" id="modal-close" aria-label="Fechar">×</button>
+    <div class="modal-kicker" id="modal-kicker">CANAL</div>
+    <div class="modal-number" id="modal-number">001</div>
+    <h2 id="modal-name">Nome do canal</h2>
+    <p id="modal-description"></p>
+    <div class="rule-list" id="modal-rules"></div>
+    <p class="availability-note">Este é o catálogo de canais. A disponibilidade depende dos títulos encontrados na biblioteca conectada ao Nostalgex.</p>
+    <div class="modal-actions"><button class="primary-action" id="open-nostalgex">ABRIR NOSTALGEX <span>↗</span></button><button class="secondary-action" id="modal-favorite">☆ ADICIONAR AOS FAVORITOS</button></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
 </body>
 </html>
