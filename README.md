@@ -1,49 +1,50 @@
 # RetroDial
 
-A lightweight webOS TV launcher for a self-hosted Nostalgex server. RetroDial is an independent companion project; it does not bundle or modify Nostalgex.
+A minimal webOS TV client for a self-hosted [Nostalgex](https://github.com/chadMueller/Nostalgex) instance.
 
-## Current status
+## Design goal
 
-**MVP launcher (0.1.0).** The app provides a TV-oriented start screen, remembers the server URL, and opens the existing Nostalgex web interface. Playback, channel data, and the guide remain hosted by Nostalgex on the NAS.
+RetroDial does **not** reimplement Nostalgex. It launches the original self-hosted Nostalgex web tuner directly inside the webOS app's web runtime. The guide, channel lineup, server connection/sign-in, schedules, and video playback remain the original Nostalgex implementation running on the NAS.
 
-Default server: `http://192.168.1.33:8080`
+This keeps one source of truth and avoids maintaining a second player or channel guide.
 
-## Project structure
+## Configured server
+
+The current installation is configured to open:
+
+```
+http://192.168.1.33:8080/
+```
+
+To point the app at another server, change `NOSTALGEX_URL` in `app.js`.
+
+## Project files
 
 - `appinfo.json` — webOS application metadata
-- `index.html` — launcher screen
-- `style.css` — 1920×1080 TV layout
-- `app.js` — server URL persistence and navigation
+- `index.html` and `style.css` — brief connection/loading fallback
+- `app.js` — immediate navigation to the original Nostalgex tuner
 
 ## Package for webOS
 
-Install the webOS TV CLI on a development machine, then from this directory run:
+Install the webOS TV CLI, then run from this directory:
 
 ```bash
 ares-package .
 ```
 
-This should produce an `.ipk` package. The package has not yet been built or tested on a physical LG TV.
-
-For Developer Mode installation, pair the TV with the CLI and use:
+Install and launch the resulting package using a paired TV device:
 
 ```bash
 ares-install --device YOUR_DEVICE_NAME com.emilio.retrodial_0.1.0_all.ipk
 ares-launch --device YOUR_DEVICE_NAME com.emilio.retrodial
 ```
 
-Exact CLI setup and device pairing depend on the installed webOS TV SDK version.
+The package has not yet been built or tested on a physical LG TV.
 
-## Notes and limitations
+## Important compatibility note
 
-- This is a launcher, not yet a native channel browser.
-- The Nostalgex server must be reachable from the TV over the local network.
-- The browser engine on webOS may impose navigation or playback limitations. Validate on the target TV.
-- The MVP uses browser local storage to remember the server URL.
-- The icon assets referenced by `appinfo.json` will be added in a subsequent packaging pass.
+The app opens the exact same web interface that is already working in the LG TV browser. However, the webOS app runtime and the TV browser may differ in navigation, media codecs, remote-key handling, and playback behavior. Those details must be validated on the TV. If the original tuner works in the browser but not in the app runtime, the next step is to address that specific compatibility issue—not to rewrite the Nostalgex interface.
 
 ## License
 
-RetroDial source code is provided under the MIT License. See [LICENSE](LICENSE).
-
-Nostalgex is a separate upstream project: https://github.com/chadMueller/Nostalgex
+RetroDial source code is provided under the MIT License. Nostalgex is a separate upstream project with its own license and notices.
