@@ -9,6 +9,7 @@ const APP_NAME = "RetroDial";
 const DEVICE_ID = "retrodial-webos";
 let auth = null;
 let libraryCache = { at: 0, items: [] };
+let channelItemCache = new Map();
 
 function json(res, status, value) {
   const body = JSON.stringify(value);
@@ -72,11 +73,15 @@ function buildChannels(items) {
     },[])
   ];
   const seen = new Set();
-  return definitions.filter(([id,, ,list])=>list.length>0&&!seen.has(id)&&(seen.add(id),true)).map(([id,name,description,list],index)=>({
+  channelItemCache = new Map();
+  return definitions.filter(([id,, ,list])=>list.length>0&&!seen.has(id)&&(seen.add(id),true)).map(([id,name,description,list],index)=>{
+    channelItemCache.set(id,list);
+    return ({
     id,name,description,number:index+1,count:list.length,
     kind:id.startsWith("decade-")?"decade":id,
-    sample:list.slice(0,120).map(itemSummary)
-  }));
+    sample:list.slice(0,8).map(itemSummary)
+  });
+  });
 }
 function itemSummary(x) {
   return { id:x.Id,name:x.Name,type:x.Type,year:x.ProductionYear||null,series:x.SeriesName||null,genres:x.Genres||[],overview:x.Overview||"",runtimeTicks:x.RunTimeTicks||0,season:x.ParentIndexNumber||null,episode:x.IndexNumber||null };
@@ -97,10 +102,19 @@ async function route(req,res) {
     try {
       const items=await getLibrary(), channels=buildChannels(items), channel=channels.find(c=>c.id===decodeURIComponent(channelMatch[1]));
       if(!channel)return json(res,404,{error:"Canal não encontrado"});
-      const ids=new Set(channel.sample.map(x=>x.id));
-      const full=items.filter(x=>ids.has(x.Id));
+      const full=channelItemCache.get(channel.id)||[];
       return json(res,200,{channel,items:full.map(itemSummary)});
     }catch(e){return json(res,502,{error:e.message});}
+  }
+  const imageMatch=url.pathname.match(/^\/api\/image\/([^/]+)$/);
+  if (imageMatch) {
+    try {
+      const itemId=decodeURIComponent(imageMatch[1]);
+      const upstream=await jellyfin("/Items/"+encodeURIComponent(itemId)+"/Images/Primary?maxWidth=500&quality=85");
+      if(!upstream.ok){res.writeHead(upstream.status,{"Access-Control-Allow-Origin":"*"});return res.end();}
+      res.writeHead(200,{"Content-Type":upstream.headers.get("content-type")||"image/jpeg","Cache-Control":"public, max-age=3600","Access-Control-Allow-Origin":"*"});
+      return res.end(Buffer.from(await upstream.arrayBuffer()));
+    } catch(e){return json(res,502,{error:e.message});}
   }
   const streamMatch=url.pathname.match(/^\/api\/stream\/([^/]+)$/);
   if (streamMatch) {
