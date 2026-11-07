@@ -1,0 +1,12 @@
+services:
+  retrodial-api:
+    build: .
+    container_name: retrodial-api
+    restart: unless-stopped
+    ports:
+      - "8100:3000"
+    environment:
+      PORT: "3000"
+      JELLYFIN_URL: "http://192.168.1.33:8096"
+      JELLYFIN_USERNAME: "${JELLYFIN_USERNAME:-a}"
+      JELLYFIN_PASSWORD: "${JELLYFIN_PASSWORD:-a}"
