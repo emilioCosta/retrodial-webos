@@ -13,7 +13,7 @@
     <a class="brand" href="#" id="brand-home" aria-label="RetroDial início"><span class="brand-mark">R</span><span>RETRO<span class="brand-accent">DIAL</span></span></a>
     <nav class="main-nav" aria-label="Navegação principal">
       <button class="nav-tab active" data-view="home">Início</button>
-      <button class="nav-tab" data-view="guide">Guia de canais</button>
+      <button class="nav-tab" data-action="live-guide">Ao vivo</button>
       <button class="nav-tab" data-view="channels">Canais</button>
     </nav>
     <div class="topbar-right"><span class="connection"><i></i><span id="connection-status">CONECTANDO</span></span><label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar canal"></label></div>
@@ -23,16 +23,10 @@
     <section id="home-view" class="view active-view">
       <div class="hero">
         <div class="hero-art"><div class="hero-glow"></div><div class="hero-screen"><span>▶</span></div><div class="hero-ring ring-a"></div><div class="hero-ring ring-b"></div><span class="hero-art-label">SUA TV. SEU ACERVO.</span></div>
-        <div class="hero-copy"><span class="eyebrow"><i></i> RETRODIAL • TV PESSOAL</span><h1>O que vamos<br><em>assistir hoje?</em></h1><p>Seus filmes e séries em uma experiência de televisão, direto do seu acervo.</p><div class="hero-actions"><button class="btn btn-primary" id="hero-guide">ABRIR GUIA <span>→</span></button><button class="btn btn-quiet" id="hero-channel">ASSISTIR AGORA</button></div></div>
+        <div class="hero-copy"><span class="eyebrow"><i></i> RETRODIAL • TV PESSOAL</span><h1>O que vamos<br><em>assistir hoje?</em></h1><p>Seus filmes e séries em uma experiência de televisão, direto do seu acervo.</p><div class="hero-actions"><button class="btn btn-primary" id="hero-channel">▶ ASSISTIR AO VIVO</button><button class="btn btn-quiet" id="hero-guide">ABRIR GUIA <span>→</span></button></div></div>
       </div>
       <section class="content-section"><div class="section-heading"><div><span class="eyebrow">SINTONIZE</span><h2>Canais para você</h2></div><button class="text-action" data-view="channels">Ver todos <span>→</span></button></div><div id="home-channels" class="channel-rail"></div></section>
-      <section class="content-section"><div class="section-heading"><div><span class="eyebrow">PROGRAMAÇÃO</span><h2>O que está passando</h2></div><button class="text-action" data-view="guide">Abrir guia <span>→</span></button></div><div id="on-now" class="now-rail"></div></section>
-    </section>
-
-    <section id="guide-view" class="view" hidden>
-      <div class="page-heading"><div><span class="eyebrow">PROGRAMAÇÃO</span><h1>Guia de canais</h1><p>Escolha um canal e entre direto na reprodução.</p></div><div class="guide-date" id="guide-date"></div></div>
-      <div class="guide-legend"><span><i class="legend-live"></i> Canal disponível</span><span>Grade ilustrativa montada a partir do seu acervo · não é EPG de transmissão ao vivo</span></div>
-      <div id="guide-grid" class="guide-grid"></div>
+      <section class="content-section"><div class="section-heading"><div><span class="eyebrow">PROGRAMAÇÃO</span><h2>O que está passando</h2></div><button class="text-action" data-action="live-guide">Abrir guia <span>→</span></button></div><div id="on-now" class="now-rail"></div></section>
     </section>
 
     <section id="channels-view" class="view" hidden>
@@ -52,11 +46,17 @@
   <footer><span>RETRODIAL</span><span>SEU ACERVO, UMA NOVA EXPERIÊNCIA</span><span id="footer-library"></span></footer>
 </div>
 
-<div id="player" class="player" hidden>
+<div id="player" class="player" tabindex="-1" hidden>
   <video id="video" playsinline></video>
   <div class="player-shade"></div>
   <header class="player-top"><button class="player-icon" id="player-back" aria-label="Voltar">←</button><div><span class="eyebrow" id="player-channel">CANAL</span><h2 id="player-title">Reproduzindo</h2></div><span class="player-hint">VOLTA PARA SAIR</span></header>
-  <div class="player-bottom"><div class="player-progress"><span id="progress-fill"></span></div><div class="player-controls"><div><strong id="player-program">Agora</strong><small id="player-meta">RetroDial</small></div><div class="control-actions"><button class="player-control" id="previous-item">⏮ <span>ANTERIOR</span></button><button class="player-control play-toggle" id="toggle-play">Ⅱ <span>PAUSAR</span></button><button class="player-control" id="next-item">⏭ <span>PRÓXIMO</span></button></div><div class="channel-zap"><button id="channel-down">−</button><span>CANAL</span><button id="channel-up">+</button></div></div></div>
+  <div class="player-bottom"><div class="player-progress"><span id="progress-fill"></span></div><div class="player-controls"><div><strong id="player-program">Agora</strong><small id="player-meta">RetroDial</small><small id="player-next"></small></div><div class="control-actions"><button class="player-control" id="previous-item">⏮ <span>ANTERIOR</span></button><button class="player-control play-toggle" id="toggle-play">Ⅱ <span>PAUSAR</span></button><button class="player-control" id="next-item">⏭ <span>PRÓXIMO</span></button></div><div class="channel-zap"><button id="channel-down">−</button><span>CANAL</span><button id="channel-up">+</button></div></div></div>
+  <section id="live-guide" class="live-guide" hidden>
+    <div class="lg-head"><div class="lg-info"><span class="lg-chan-line" id="lg-channel">CANAL</span><h2 class="lg-title" id="lg-title">—</h2><div class="lg-meta" id="lg-meta"></div><p class="lg-overview" id="lg-overview"></p></div><div class="lg-clock" id="lg-clock"></div></div>
+    <div class="lg-times" id="lg-times"></div>
+    <div class="lg-rows" id="lg-rows"></div>
+    <div class="lg-hint"><span>▲▼ TROCAR CANAL</span><span>OK TELA CHEIA</span><span>0–9 IR PARA CANAL</span><span>VOLTAR SAIR</span></div>
+  </section>
   <div class="player-toast" id="player-toast" aria-live="polite"></div>
 </div>
 <div id="toast" class="toast" aria-live="polite"></div>

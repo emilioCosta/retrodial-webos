@@ -10,3 +10,4 @@ services:
       JELLYFIN_URL: "${JELLYFIN_URL:-http://192.168.1.33:8096}"
       JELLYFIN_USERNAME: "${JELLYFIN_USERNAME:?defina JELLYFIN_USERNAME no .env}"
       JELLYFIN_PASSWORD: "${JELLYFIN_PASSWORD:?defina JELLYFIN_PASSWORD no .env}"
+      TZ_NAME: "${TZ_NAME:-America/Sao_Paulo}"
