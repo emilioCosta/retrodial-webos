@@ -1,7 +1,7 @@
 (() => {
   // Fixed NAS address configured for this installation.
   // Nostalgex remains responsible for sign-in, channel guide and playback.
-  const NOSTALGEX_URL = "http://192.168.1.33:8080/";
+  const NOSTALGEX_URL = "http://192.168.1.33:8099/";
 
   const status = document.getElementById("connection-status");
   const retry = document.getElementById("retry");
