@@ -70,9 +70,19 @@
     $("modal-description").textContent="Canal "+ch.number+" do catálogo Nostalgex. A programação é montada a partir dos títulos compatíveis encontrados na sua biblioteca.";
     $("modal-rules").innerHTML=describeRules(ch).map(v=>'<span class="rule-chip">'+escapeHtml(v)+'</span>').join("");
     $("modal-favorite").textContent=state.favorites.has(id)?"★ REMOVER DOS FAVORITOS":"☆ ADICIONAR AOS FAVORITOS";
+    history.pushState({retrodialModal:true},"","#channel-"+id);
     $("modal").hidden=false; $("modal-close").focus();
   }
-  function closeModal(){ $("modal").hidden=true; state.selected=null; const card=document.querySelector('.channel-card[data-id="'+(state.selected||"")+'"]'); if(card)card.focus(); }
+  function closeModal(fromPop=false){
+    if($("modal").hidden)return;
+    const previousId=state.selected;
+    $("modal").hidden=true;
+    state.selected=null;
+    if(!fromPop&&history.state&&history.state.retrodialModal){history.back();return;}
+    const card=document.querySelector('.channel-card[data-id="'+previousId+'"]');
+    if(card)card.focus();
+  }
+  window.addEventListener("popstate",()=>{if(!$("modal").hidden)closeModal(true);});
   $("modal-close").addEventListener("click",closeModal);
   $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal();});
   $("modal-favorite").addEventListener("click",()=>{
