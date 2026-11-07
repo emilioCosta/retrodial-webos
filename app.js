@@ -1,36 +1,21 @@
 (() => {
-  const input = document.getElementById("server-url");
-  const button = document.getElementById("open-guide");
-  const status = document.getElementById("status");
-  const saved = localStorage.getItem("retrodial.serverUrl");
+  // Fixed NAS address configured for this installation.
+  // Nostalgex remains responsible for sign-in, channel guide and playback.
+  const NOSTALGEX_URL = "http://192.168.1.33:8080/";
 
-  if (saved) input.value = saved;
+  const status = document.getElementById("connection-status");
+  const retry = document.getElementById("retry");
 
-  function openGuide() {
-    const raw = input.value.trim();
-    let target;
-
-    try {
-      target = new URL(raw);
-      if (!["http:", "https:"].includes(target.protocol)) throw new Error("protocol");
-    } catch (_) {
-      status.textContent = "Informe um endereço HTTP ou HTTPS válido.";
-      input.focus();
-      return;
-    }
-
-    localStorage.setItem("retrodial.serverUrl", target.origin);
-    status.textContent = "Abrindo o guia…";
-    window.location.href = target.href;
+  function openNostalgex() {
+    status.textContent = "Conectando a " + NOSTALGEX_URL;
+    window.location.replace(NOSTALGEX_URL);
   }
 
-  button.addEventListener("click", openGuide);
-  input.addEventListener("keydown", event => {
-    if (event.key === "Enter") openGuide();
-  });
+  retry.addEventListener("click", openNostalgex);
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape") button.focus();
+    if (event.key === "Enter" && !retry.hidden) openNostalgex();
   });
 
-  button.focus();
+  // No extra launcher screen or duplicate guide: open the original tuner.
+  openNostalgex();
 })();
