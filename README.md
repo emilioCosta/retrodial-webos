@@ -1,43 +1,39 @@
-# RetroDial
+# RetroDial 0.3.0
 
-A television-first webOS client and companion interface for a self-hosted [Nostalgex](https://github.com/chadMueller/Nostalgex) installation.
+RetroDial is an independent, TV-first personal media channel application. It uses Jellyfin as its media library and playback server. It does not require the Nostalgex web UI or a Plex/Jellyfin provider selection screen.
 
-## Current version: 0.2.0
+## Architecture
 
-This release introduces an independent TV-oriented channel catalogue interface.
+- `server/index.js`: small Node.js API that authenticates to one configured Jellyfin account, discovers its Movie/Episode library, creates thematic channels from actual library genres and metadata, and proxies playback.
+- `index.html`, `style.css`, `app.js`: RetroDial's own television interface.
+- `docker-compose.yml`: NAS deployment on host port 8100.
 
-- Bundles the upstream Nostalgex channel configuration (142 channels, 14 bundles, config v50).
-- Browse all channels, filter by bundle, search by name/number, and save favorites locally.
-- Remote-friendly focus states and keyboard navigation.
-- Channel details show the channel number, source bundle, and a summary of its configured rules.
-- The "Open Nostalgex" action launches the existing NAS web tuner at `http://192.168.1.33:8099/`.
+## Jellyfin configuration
 
-## Important integration boundary
+Defaults are set for this installation:
+- Jellyfin: `http://192.168.1.33:8096`
+- Username: `a`
+- Password: `a`
 
-The bundled catalogue is the complete channel definition currently published by Nostalgex. It is **not** a report of which channels are populated by the user's media library. Actual availability depends on the connected Plex/Jellyfin/Emby library and the Nostalgex filtering, enrichment, and schedule engine.
+Override with `JELLYFIN_URL`, `JELLYFIN_USERNAME`, and `JELLYFIN_PASSWORD`. Credentials are stored only in the NAS container environment, not in the webOS app.
 
-This first independent UI release does not yet implement native channel tuning or playback. The existing Nostalgex tuner remains responsible for authentication, library scanning, schedule generation, and video playback. Direct integration with the media server and the Nostalgex channel/schedule logic is the next development phase.
+## Deploy API on OpenMediaVault
 
-## Data provenance
-
-- `data/channels.json` is copied from `chadMueller/Nostalgex` (MIT), preserving its configuration and attribution.
-- `data/franchises.json` is copied from the same upstream project (MIT).
-- The upstream project name and branding remain the property of their respective owner. RetroDial is an independent community project.
-
-## Configure NAS address
-
-Change `NOSTALGEX_URL` in `app.js` if the Nostalgex server address changes.
-
-## Build and install
-
-Install the webOS TV CLI, then run:
+Copy the repository to the NAS (or use the folder containing these files), then run:
 
 ```bash
-ares-package .
-ares-install --device YOUR_DEVICE_NAME <generated-ipk>
-ares-launch --device YOUR_DEVICE_NAME com.emilio.retrodial
+docker compose up -d --build
+docker logs -f retrodial-api
 ```
 
-## License
+API health check: `http://NAS-IP:8100/api/health`.
 
-RetroDial source code is provided under the MIT License. See `LICENSE`. The upstream Nostalgex project has its own MIT license and notices.
+The webOS client needs to be hosted from the same origin as this API, or configured to use the API base URL. The current webOS package is a static client; for a standalone IPK, package the static client with a local API URL pointing at the NAS.
+
+## Important scope
+
+This first independent release creates channels dynamically from the media actually found in Jellyfin. It is not yet a continuous 24/7 schedule: deterministic per-channel scheduling, automatic next-item playback, guide grid/EPG, resume/continue watching, and richer collection/franchise inference are planned next. It scans the first 10,000 Movie/Episode records; larger libraries will need pagination.
+
+## Credentials and security
+
+The default `a/a` credentials are installation-specific. The server should be reachable only on the trusted home network. Prefer a dedicated Jellyfin user with read-only library access and a unique password.
