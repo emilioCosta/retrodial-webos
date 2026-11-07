@@ -40,6 +40,7 @@ async function jellyfin(path, options = {}) {
   return response;
 }
 async function getLibrary(force = false) {
+  if (!auth) await authenticate();
   if (!force && Date.now() - libraryCache.at < 5 * 60 * 1000 && libraryCache.items.length) return libraryCache.items;
   const fields = "Genres,Studios,ProductionYear,Overview,RunTimeTicks,ProviderIds,SeriesName,ParentIndexNumber,IndexNumber,DateCreated";
   const response = await jellyfin("/Users/" + encodeURIComponent(auth.userId) + "/Items?Recursive=true&IncludeItemTypes=Movie,Episode&Fields=" + fields + "&EnableTotalRecordCount=true&Limit=10000&SortBy=SortName");
