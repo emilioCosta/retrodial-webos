@@ -1,6 +1,6 @@
 {
   "id": "com.emilio.retrodial",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "vendor": "Independent community project",
   "type": "web",
   "main": "index.html",
@@ -8,5 +8,6 @@
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
   "resolution": "1920x1080",
-  "bgColor": "#101014"
+  "bgColor": "#0b0d12",
+  "requiredACG": []
 }
