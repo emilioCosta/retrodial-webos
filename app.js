@@ -191,7 +191,7 @@ function renderLiveGuide(){
  $("lg-rows").innerHTML='<div class="lg-row"><div class="lg-track">'+L.entries.map((e,i)=>{
   const active=i===L.index;
   const meta=[e.item.series,e.item.year].filter(Boolean).join(" · ");
-  return '<div class="lg-cell'+(active?' now':'')+'"><small>'+esc(fmtTime(e.start))+' – '+esc(fmtTime(e.end))+'</small><strong>'+esc(e.item.name)+'</strong><em>'+esc(meta||e.item.type||"")+'</em></div>';
+  return '<div class="lg-cell'+(active?' now':'')+'"'+(active?' data-current-program="true"':'')+'><small>'+esc(fmtTime(e.start))+' – '+esc(fmtTime(e.end))+'</small><strong>'+esc(e.item.name)+'</strong><em>'+esc(meta||e.item.type||"")+'</em></div>';
  }).join("")+'</div></div>';
  $("lg-clock").textContent=fmtTime(nowMs());
  updateLiveInfo();
@@ -233,6 +233,7 @@ async function init(){
 }
 document.addEventListener("click",e=>{
  const view=e.target.closest("[data-view]");if(view){setView(view.dataset.view);return;}
+ const currentProgram=e.target.closest("[data-current-program]");if(currentProgram&&state.live&&state.guideOpen){setGuide(false);return;}
  const act=e.target.closest("[data-action]");if(act&&act.dataset.action==="live-guide"){const id=lastChannelId();if(id)tune(id,{guide:true});return;}
  const channel=e.target.closest("[data-channel]");if(channel){tune(channel.dataset.channel,{guide:false});return;}
  const start=e.target.closest("[data-start-channel]");if(start){tune(start.dataset.startChannel,{guide:false});return;}
