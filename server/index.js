@@ -215,7 +215,7 @@ async function route(req,res) {
   if(playbackMatch){
     try{
       const itemId=decodeURIComponent(playbackMatch[1]);
-      const upstream=await jellyfin("/Users/"+encodeURIComponent(auth.userId)+"/Items/"+encodeURIComponent(itemId)+"?Fields=MediaSources");
+      const upstream=await jellyfin("/Items/"+encodeURIComponent(itemId)+"/PlaybackInfo?UserId="+encodeURIComponent(auth.userId));
       if(!upstream.ok)return json(res,upstream.status,{error:"Não foi possível consultar as faixas do item"});
       const item=await upstream.json(),source=(item.MediaSources||[])[0];
       if(!source)return json(res,404,{error:"Nenhuma fonte de mídia encontrada"});
@@ -227,7 +227,7 @@ async function route(req,res) {
   if(subtitleMatch){
     try{
       const itemId=decodeURIComponent(subtitleMatch[1]),sourceId=decodeURIComponent(subtitleMatch[2]),index=Number(subtitleMatch[3]);
-      const upstream=await jellyfin("/Videos/"+encodeURIComponent(itemId)+"/"+encodeURIComponent(sourceId)+"/Subtitles/"+index+"/Stream.vtt?api_key="+encodeURIComponent(auth.token));
+      const upstream=await jellyfin("/Videos/"+encodeURIComponent(itemId)+"/"+encodeURIComponent(sourceId)+"/Subtitles/"+index+"/Stream.vtt");
       if(!upstream.ok){res.writeHead(upstream.status,{"Access-Control-Allow-Origin":"*"});return res.end();}
       res.writeHead(200,{"Content-Type":"text/vtt; charset=utf-8","Access-Control-Allow-Origin":"*","Cache-Control":"no-store"});
       return res.end(await upstream.text());
