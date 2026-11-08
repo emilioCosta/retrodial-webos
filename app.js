@@ -3,7 +3,7 @@
 const DEFAULT_API="http://192.168.1.33:8100/api";
 const API=(()=>{try{return window.RETRODIAL_API||localStorage.getItem("retrodial.api")||DEFAULT_API;}catch(e){return DEFAULT_API;}})();
 const $=id=>document.getElementById(id);
-const state={channels:[],libraryCount:0,activeView:"home",items:[],channel:null,channelIndex:0,itemIndex:0,loading:false,live:null,skew:0,tz:"",guideOpen:false,guideData:null,sel:0,programSel:0,nowMap:{}};
+const state={channels:[],libraryCount:0,activeView:"home",items:[],channel:null,channelIndex:0,itemIndex:0,loading:false,live:null,skew:0,tz:"",guideOpen:false,guideData:null,sel:0,nowMap:{}};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const image=id=>API+"/image/"+encodeURIComponent(id);
 let lastFocus=null;
@@ -133,7 +133,7 @@ async function tune(channelId,opts){
  const p=$("player");
  if(p.hidden){lastFocus=document.activeElement;p.hidden=false;}
  p.classList.add("live");document.body.classList.add("tv-mode");
- state.live={channelId,entries:data.entries,index:0,errors:0};state.programSel=0;
+ state.live={channelId,entries:data.entries,index:0,errors:0};
  state.channel=channel;state.channelIndex=state.channels.findIndex(c=>c.id===channelId);
  rememberChannel(channelId);
  if(opts.guide!==undefined&&opts.guide!==state.guideOpen)setGuide(opts.guide);
@@ -189,28 +189,16 @@ function renderLiveGuide(){
  const L=state.live;if(!L)return;
  $("lg-times").innerHTML='<div class="lg-time-caption">PROGRAMAÇÃO DO CANAL</div><div class="lg-time-caption">'+esc(state.channel?.name||"")+' · '+esc(fmtTime(nowMs()))+'</div>';
  $("lg-rows").innerHTML='<div class="lg-row"><div class="lg-track">'+L.entries.map((e,i)=>{
-  const active=i===L.index,selected=i===state.programSel;
+  const active=i===L.index;
   const meta=[e.item.series,e.item.year].filter(Boolean).join(" · ");
-  return '<button class="lg-cell'+(active?' now':'')+(selected?' selected':'')+'" data-program-index="'+i+'"><small>'+esc(fmtTime(e.start))+' – '+esc(fmtTime(e.end))+'</small><strong>'+esc(e.item.name)+'</strong><em>'+esc(meta||e.item.type||"")+'</em></button>';
+  return '<div class="lg-cell'+(active?' now':'')+'"><small>'+esc(fmtTime(e.start))+' – '+esc(fmtTime(e.end))+'</small><strong>'+esc(e.item.name)+'</strong><em>'+esc(meta||e.item.type||"")+'</em></div>';
  }).join("")+'</div></div>';
  $("lg-clock").textContent=fmtTime(nowMs());
  updateLiveInfo();
 }
-function selectProgram(index){
- const L=state.live;if(!L)return;
- state.programSel=Math.max(0,Math.min(L.entries.length-1,index));
- const cards=$("lg-rows").querySelectorAll("[data-program-index]");
- cards.forEach((el,i)=>el.classList.toggle("selected",i===state.programSel));
- const selected=cards[state.programSel];if(selected&&selected.scrollIntoView)selected.scrollIntoView({block:"nearest",inline:"nearest"});
-}
-function moveProgram(delta){if(!state.live)return;selectProgram(state.programSel+delta);}
-function chooseProgram(index){
- const L=state.live;if(!L||!L.entries[index])return;
- state.programSel=index;playLive(index,L.entries[index].offset||0);setGuide(false);
-}
 function setGuide(open){
  const p=$("player");state.guideOpen=!!open;p.classList.toggle("guide-open",!!open);$("live-guide").hidden=!open;
- if(open){clearTimeout(uiTimer);p.classList.remove("ui-hidden");renderLiveGuide();selectProgram(state.live?state.live.index:0);}
+ if(open){clearTimeout(uiTimer);p.classList.remove("ui-hidden");renderLiveGuide();}
  else showLiveUi();
 }
 function onLiveKey(e,key,code){
@@ -220,9 +208,8 @@ function onLiveKey(e,key,code){
  if(state.guideOpen){
   if(up||chUp){e.preventDefault();zapLive(1);return;}
   if(down||chDown){e.preventDefault();zapLive(-1);return;}
-  if(key==="ArrowLeft"){e.preventDefault();moveProgram(-1);return;}
-  if(key==="ArrowRight"){e.preventDefault();moveProgram(1);return;}
-  if(ok){e.preventDefault();chooseProgram(state.programSel);return;}
+  if(key==="ArrowLeft"||key==="ArrowRight"){e.preventDefault();return;}
+  if(ok){e.preventDefault();setGuide(false);return;}
   return;
  }
  showLiveUi();
@@ -246,7 +233,6 @@ async function init(){
 }
 document.addEventListener("click",e=>{
  const view=e.target.closest("[data-view]");if(view){setView(view.dataset.view);return;}
- const guideProgram=e.target.closest("[data-program-index]");if(guideProgram&&state.live&&isPlayer()){chooseProgram(Number(guideProgram.dataset.programIndex));return;}
  const act=e.target.closest("[data-action]");if(act&&act.dataset.action==="live-guide"){const id=lastChannelId();if(id)tune(id,{guide:true});return;}
  const channel=e.target.closest("[data-channel]");if(channel){tune(channel.dataset.channel,{guide:false});return;}
  const start=e.target.closest("[data-start-channel]");if(start){tune(start.dataset.startChannel,{guide:false});return;}
