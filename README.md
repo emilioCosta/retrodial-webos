@@ -1,12 +1,13 @@
-# RetroDial 0.5.0
+# RetroDial 0.6.0
 
 RetroDial is an independent, TV-first personal media application for LG webOS. Jellyfin remains the media library and playback server; the TV interface does not open Nostalgex or ask the viewer to choose a provider or log in.
 
 ## TV experience in this release
 
 - **Ao vivo:** cada canal tem uma programação linear. A lista do canal é embaralhada uma vez por dia (semente = data + canal), colocada em sequência a partir da meia-noite e repetida em loop. A posição atual vem do relógio, então ao sintonizar você entra no meio do episódio, como na TV. Todos os aparelhos veem a mesma grade.
-- **Tela de programação:** vídeo no canto, informações do programa em exibição e uma grade de 3 horas com todos os canais. `▲▼` troca de canal (a prévia sintoniza sozinha), `OK` vai para tela cheia, `0–9` vai direto ao canal, `VOLTAR` fecha o guia e depois sai.
-- **Tela cheia:** `▲▼` / CH+ CH− trocam de canal; `OK` abre o guia; mostra o programa atual e "A SEGUIR".
+- **Tela principal:** ao abrir, sintoniza automaticamente o último canal e mostra o vídeo, a descrição do programa e a faixa de programação com horários na parte inferior.
+- **Programação:** a faixa inferior é informativa; `↑↓` trocam de canal; `OK` seleciona o programa e abre a reprodução em tela cheia.
+- **Tela cheia:** `↑↓` / CH+ CH− trocam de canal; `OK` revela novamente a programação; `VOLTAR` fecha a programação e, em seguida, sai do player.
 - Ao terminar um item, o próximo da grade começa do início. Itens com erro são pulados.
 - Episódios da mesma série são espalhados para não tocar em sequência.
 - Home: "O que está passando" mostra o programa que está no ar agora em cada canal.
@@ -50,7 +51,7 @@ Package the static webOS client with the installed webOS CLI tools. Confirm the 
 
 1. Abrir o RetroDial direto, sem login.
 2. Home → "ASSISTIR AO VIVO": entra no meio de um programa e mostra o título e "A SEGUIR".
-3. `OK` abre o guia; `▲▼` troca de canal e a prévia sintoniza; `OK` volta para tela cheia.
+3. A faixa inferior mostra a grade prevista; `OK` alterna entre a tela com a programação e o vídeo em tela cheia; `▲▼` troca de canal.
 4. Digitar o número de um canal (ex.: `3`) sintoniza esse canal.
 5. CH+/CH− e `▲▼` em tela cheia trocam de canal.
 6. Deixar um item terminar: o próximo da grade começa.
