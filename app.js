@@ -245,7 +245,7 @@ async function init(){
 }
 document.addEventListener("click",e=>{
  const view=e.target.closest("[data-view]");if(view){setView(view.dataset.view);return;}
- const program=e.target.closest("[data-program-index]");if(program){chooseProgram(Number(program.dataset.programIndex));return;}
+ const guideProgram=e.target.closest("[data-program-index]");if(guideProgram&&state.live&&isPlayer()){chooseProgram(Number(guideProgram.dataset.programIndex));return;}
  const act=e.target.closest("[data-action]");if(act&&act.dataset.action==="live-guide"){const id=lastChannelId();if(id)tune(id,{guide:true});return;}
  const channel=e.target.closest("[data-channel]");if(channel){tune(channel.dataset.channel,{guide:false});return;}
  const start=e.target.closest("[data-start-channel]");if(start){tune(start.dataset.startChannel,{guide:false});return;}
