@@ -87,7 +87,7 @@ function moveFocus(direction){
  const scored=candidates.filter(el=>el!==active).map(el=>{const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,dx=x-ox,dy=y-oy;const primary=direction==="ArrowLeft"?-dx:direction==="ArrowRight"?dx:direction==="ArrowUp"?-dy:dy;if(primary<=4)return null;const cross=(direction==="ArrowLeft"||direction==="ArrowRight")?Math.abs(dy):Math.abs(dx);return {el,score:primary+cross*2.3};}).filter(Boolean).sort((a,b)=>a.score-b.score);
  if(scored[0])scored[0].el.focus();
 }
-function handleBack(){if(isPlayer()){if(state.live&&state.guideOpen){flushTune();setGuide(false);return true;}closePlayer();return true;}if(state.activeView==="channel"){setView("channels");return true;}if(state.activeView!=="home"){setView("home");return true;}return false;}
+function handleBack(){if(isPlayer()){if(state.live&&state.guideOpen){setGuide(false);return true;}closePlayer();return true;}if(state.activeView==="channel"){setView("channels");return true;}if(state.activeView!=="home"){setView("home");return true;}return false;}
 function onKey(e){
  const key=e.key;const code=e.keyCode||e.which;
  const typing=document.activeElement&&document.activeElement.tagName==="INPUT";
@@ -202,22 +202,26 @@ function renderLiveGuide(){
 }
 function setGuide(open){const p=$("player");state.guideOpen=!!open;p.classList.toggle("guide-open",!!open);$("live-guide").hidden=!open;if(open){clearTimeout(uiTimer);p.classList.remove("ui-hidden");loadGuide().then(renderLiveGuide).catch(e=>playerToast("Falha ao carregar grade: "+e.message));}else showLiveUi();}
 function onLiveKey(e,key,code){
- const up=key==="ArrowUp",down=key==="ArrowDown",chUp=key==="ChannelUp"||code===33||code===427,chDown=key==="ChannelDown"||code===34||code===428,ok=key==="Enter"||code===13;
- if(/^[0-9]$/.test(key)){e.preventDefault();digitBuf=(digitBuf+key).slice(-3);playerToast("Canal "+digitBuf);clearTimeout(digitTimer);digitTimer=setTimeout(()=>{const n=Number(digitBuf);digitBuf="";const c=state.channels.find(x=>x.number===n);if(!c){playerToast("Canal "+n+" não existe");return;}clearTimeout(tuneTimer);tuneTimer=null;const g=state.guideData;if(state.guideOpen&&g){const i=g.channels.findIndex(x=>x.id===c.id);if(i>=0)selectRow(i);}tune(c.id);},1200);return;}
+ const ok=key==="Enter"||code===13;
+ if(/^[0-9]$/.test(key)){e.preventDefault();digitBuf=(digitBuf+key).slice(-3);playerToast("Canal "+digitBuf);clearTimeout(digitTimer);digitTimer=setTimeout(()=>{const n=Number(digitBuf);digitBuf="";const c=state.channels.find(x=>x.number===n);if(!c){playerToast("Canal "+n+" não existe");return;}if(state.guideOpen){const i=state.guideData?.channels.findIndex(x=>x.id===c.id)??-1;if(i>=0)selectGuide(i,0);return;}tune(c.id);},1200);return;}
  if(ok&&state.live&&state.live.needsGesture){e.preventDefault();state.live.needsGesture=false;togglePlay();return;}
  if(state.guideOpen){
-  if(up||chUp){e.preventDefault();zapLive(1);return;}
-  if(down||chDown){e.preventDefault();zapLive(-1);return;}
-  if(key==="ArrowLeft"||key==="ArrowRight"){e.preventDefault();return;}
-  if(ok){e.preventDefault();setGuide(false);return;}
+  if(!state.guideData)return;
+  if(key==="ArrowUp"){e.preventDefault();selectGuide(state.guideRow-1,state.guideCol);return;}
+  if(key==="ArrowDown"){e.preventDefault();selectGuide(state.guideRow+1,state.guideCol);return;}
+  if(key==="ArrowLeft"){e.preventDefault();selectGuide(state.guideRow,state.guideCol-1);return;}
+  if(key==="ArrowRight"){e.preventDefault();selectGuide(state.guideRow,state.guideCol+1);return;}
+  if(ok){e.preventDefault();const c=state.guideData.channels[state.guideRow];if(c&&c.id!==state.live.channelId)tune(c.id);else setGuide(false);return;}
   return;
  }
  showLiveUi();
- if(up||chUp){e.preventDefault();zapLive(1);return;}
- if(down||chDown){e.preventDefault();zapLive(-1);return;}
+ if(key==="ArrowUp"||key==="ChannelUp"||code===33||code===427){e.preventDefault();zapLive(1);return;}
+ if(key==="ArrowDown"||key==="ChannelDown"||code===34||code===428){e.preventDefault();zapLive(-1);return;}
  if(ok){e.preventDefault();setGuide(true);return;}
  if(key==="ArrowLeft"||key==="ArrowRight"){e.preventDefault();return;}
  if(key===" "||code===415||code===19){e.preventDefault();const v=$("video");if(code===415&&!v.paused)return;if(code===19&&v.paused)return;togglePlay();return;}
+ if(code===405){e.preventDefault();toggleLiveSubtitles();return;}
+ if(code===406){e.preventDefault();cycleLiveAudio();return;}
 }
 setInterval(()=>{if(!state.live||$("player").hidden||!state.guideOpen)return;$("lg-clock").textContent=fmtTime(nowMs());},1000);
 async function init(){
@@ -233,7 +237,7 @@ async function init(){
 }
 document.addEventListener("click",e=>{
  const view=e.target.closest("[data-view]");if(view){setView(view.dataset.view);return;}
- const currentProgram=e.target.closest("[data-current-program]");if(currentProgram&&state.live&&state.guideOpen){setGuide(false);return;}
+ const guideCell=e.target.closest("[data-guide-row][data-guide-col]");if(guideCell&&state.live&&state.guideOpen){selectGuide(Number(guideCell.dataset.guideRow),Number(guideCell.dataset.guideCol));return;}
  const act=e.target.closest("[data-action]");if(act&&act.dataset.action==="live-guide"){const id=lastChannelId();if(id)tune(id,{guide:true});return;}
  const channel=e.target.closest("[data-channel]");if(channel){tune(channel.dataset.channel,{guide:false});return;}
  const start=e.target.closest("[data-start-channel]");if(start){tune(start.dataset.startChannel,{guide:false});return;}
