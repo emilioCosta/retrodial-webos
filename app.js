@@ -150,6 +150,7 @@ function playLive(index,offset){
  const p=video.play();if(p&&p.catch)p.catch(err=>{if(err&&err.name==="NotAllowedError"){L.needsGesture=true;playerToast("Pressione OK para iniciar a reprodução");}});
  $("progress-fill").style.width="0%";
  updateLiveInfo();
+ if(state.guideOpen)renderLiveGuide();
 }
 function updateLiveInfo(){
  const L=state.live;if(!L)return;const e=L.entries[L.index],item=e.item,next=L.entries[L.index+1],ch=state.channel;
