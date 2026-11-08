@@ -3,7 +3,7 @@
 const DEFAULT_API="http://192.168.1.33:8100/api";
 const API=(()=>{try{return window.RETRODIAL_API||localStorage.getItem("retrodial.api")||DEFAULT_API;}catch(e){return DEFAULT_API;}})();
 const $=id=>document.getElementById(id);
-const state={channels:[],libraryCount:0,activeView:"home",items:[],channel:null,channelIndex:0,itemIndex:0,loading:false,live:null,skew:0,tz:"",guideOpen:false,guideData:null,sel:0,nowMap:{}};
+const state={channels:[],libraryCount:0,activeView:"home",items:[],channel:null,channelIndex:0,itemIndex:0,loading:false,live:null,skew:0,tz:"",guideOpen:false,guideData:null,guideRow:0,guideCol:0,nowMap:{}};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const image=id=>API+"/image/"+encodeURIComponent(id);
 let lastFocus=null;
@@ -177,30 +177,30 @@ function liveError(){
 }
 function zapLive(delta){const n=state.channels.length;if(!n)return;state.channelIndex=(state.channelIndex+delta+n)%n;tune(state.channels[state.channelIndex].id);}
 function showLiveUi(){const p=$("player");p.classList.remove("ui-hidden");clearTimeout(uiTimer);if(!state.guideOpen)uiTimer=setTimeout(()=>p.classList.add("ui-hidden"),5000);}
-function flushTune(){if(tuneTimer){clearTimeout(tuneTimer);tuneTimer=null;const g=state.guideData;if(g&&g.channels[state.sel])tune(g.channels[state.sel].id);}}
 async function loadGuide(){
  const start=Math.floor(nowMs()/SLOT)*SLOT;
- const d=await request("/guide?hours=3&from="+start);
- syncClock(d.serverTime,d.timezone);
- state.guideData={start,channels:d.channels};
- const m={};d.channels.forEach(c=>{const cur=c.entries.find(e=>e.start<=nowMs()&&nowMs()<e.end);if(cur)m[c.id]=cur;});state.nowMap=m;
+ const d=await request("/guide?hours=3&from="+start);syncClock(d.serverTime,d.timezone);
+ state.guideData={start,end:start+WINDOW,channels:d.channels||[]};
+ const i=state.guideData.channels.findIndex(c=>c.id===state.live?.channelId);state.guideRow=Math.max(0,i);
+ const entries=state.guideData.channels[state.guideRow]?.entries||[];
+ state.guideCol=entries.findIndex(e=>e.start<=nowMs()&&nowMs()<e.end);if(state.guideCol<0)state.guideCol=0;
 }
+function selectedGuideEntry(){const c=state.guideData?.channels[state.guideRow];return c?(c.entries||[])[state.guideCol]||null:null;}
+function selectGuide(row,col){const g=state.guideData;if(!g||!g.channels.length)return;state.guideRow=Math.max(0,Math.min(g.channels.length-1,row));const a=g.channels[state.guideRow].entries||[];state.guideCol=Math.max(0,Math.min(Math.max(0,a.length-1),col));renderLiveGuide();const r=$("lg-rows").querySelector(".lg-row.sel");if(r)r.scrollIntoView({block:"nearest"});}
 function renderLiveGuide(){
- const L=state.live;if(!L)return;
- $("lg-times").innerHTML='<div class="lg-time-caption">PROGRAMAÇÃO DO CANAL</div><div class="lg-time-caption">'+esc(state.channel?.name||"")+' · '+esc(fmtTime(nowMs()))+'</div>';
- $("lg-rows").innerHTML='<div class="lg-row"><div class="lg-track">'+L.entries.map((e,i)=>{
-  const active=i===L.index;
-  const meta=[e.item.series,e.item.year].filter(Boolean).join(" · ");
-  return '<div class="lg-cell'+(active?' now':'')+'"'+(active?' data-current-program="true"':'')+'><small>'+esc(fmtTime(e.start))+' – '+esc(fmtTime(e.end))+'</small><strong>'+esc(e.item.name)+'</strong><em>'+esc(meta||e.item.type||"")+'</em></div>';
- }).join("")+'</div></div>';
- $("lg-clock").textContent=fmtTime(nowMs());
- updateLiveInfo();
+ const L=state.live,g=state.guideData;if(!L||!g)return;const duration=g.end-g.start,now=nowMs(),pct=Math.max(0,Math.min(100,(now-g.start)/duration*100));
+ const c=g.channels[state.guideRow],entry=selectedGuideEntry();
+ $("lg-channel").textContent=c?"CANAL "+String(c.number||"").padStart(2,"0")+" · "+c.name:"GUIA DE PROGRAMAÇÃO";
+ $("lg-title").textContent=entry?.item?.name||"Programação";$("lg-meta").textContent=entry?fmtTime(entry.start)+" – "+fmtTime(entry.end):"Selecione um programa";
+ $("lg-overview").textContent="Navegue por todos os canais sem interromper o vídeo. OK sintoniza o canal selecionado no programa que estiver passando agora.";$("lg-clock").textContent=fmtTime(now);
+ $("lg-times").innerHTML='<div class="lg-time-caption">CANAL / HORÁRIO</div><div class="lg-time-caption">'+esc(fmtTime(g.start))+' — '+esc(fmtTime(g.end))+'</div>';
+ $("lg-rows").innerHTML=g.channels.map((ch,ri)=>{
+  const cells=(ch.entries||[]).map((e,ci)=>{const left=Math.max(0,(e.start-g.start)/duration*100),right=Math.min(100,(e.end-g.start)/duration*100),width=Math.max(1,right-left);if(right<=0||left>=100)return "";const active=e.start<=now&&now<e.end,selected=ri===state.guideRow&&ci===state.guideCol;return '<button class="lg-cell'+(active?" now":"")+(selected?" selected":"")+'" data-guide-row="'+ri+'" data-guide-col="'+ci+'" style="left:'+left+'%;width:'+width+'%"><small>'+esc(fmtTime(e.start))+' – '+esc(fmtTime(e.end))+'</small><strong>'+esc(e.item.name)+'</strong><em>'+(active?"NO AR":"")+"</em></button>";}).join("");
+  return '<div class="lg-row'+(ri===state.guideRow?" sel":"")+'"><div class="lg-chan"><b>'+esc(String(ch.number||ri+1).padStart(2,"0"))+'</b><span>'+esc(ch.name)+'</span></div><div class="lg-track"><div class="lg-nowline" style="left:'+pct+'%"></div>'+cells+"</div></div>";
+ }).join("");
+ const active=$("lg-rows").querySelector(".lg-row.sel");if(active)active.scrollIntoView({block:"nearest"});
 }
-function setGuide(open){
- const p=$("player");state.guideOpen=!!open;p.classList.toggle("guide-open",!!open);$("live-guide").hidden=!open;
- if(open){clearTimeout(uiTimer);p.classList.remove("ui-hidden");renderLiveGuide();}
- else showLiveUi();
-}
+function setGuide(open){const p=$("player");state.guideOpen=!!open;p.classList.toggle("guide-open",!!open);$("live-guide").hidden=!open;if(open){clearTimeout(uiTimer);p.classList.remove("ui-hidden");loadGuide().then(renderLiveGuide).catch(e=>playerToast("Falha ao carregar grade: "+e.message));}else showLiveUi();}
 function onLiveKey(e,key,code){
  const up=key==="ArrowUp",down=key==="ArrowDown",chUp=key==="ChannelUp"||code===33||code===427,chDown=key==="ChannelDown"||code===34||code===428,ok=key==="Enter"||code===13;
  if(/^[0-9]$/.test(key)){e.preventDefault();digitBuf=(digitBuf+key).slice(-3);playerToast("Canal "+digitBuf);clearTimeout(digitTimer);digitTimer=setTimeout(()=>{const n=Number(digitBuf);digitBuf="";const c=state.channels.find(x=>x.number===n);if(!c){playerToast("Canal "+n+" não existe");return;}clearTimeout(tuneTimer);tuneTimer=null;const g=state.guideData;if(state.guideOpen&&g){const i=g.channels.findIndex(x=>x.id===c.id);if(i>=0)selectRow(i);}tune(c.id);},1200);return;}
