@@ -42,3 +42,40 @@
 .player.live .player-toast{font-size:24px;padding:16px 26px}
 .player.live .channel-zap span{font-size:16px}
 .player.live .channel-zap button{height:52px;min-width:52px;font-size:24px}
+
+
+/* ---- Live TV: picture-first screen with a bottom programme strip ---- */
+body.tv-mode .app-shell{display:none}
+body.tv-mode,body.tv-mode #player{background:#000}
+.player.guide-open video{inset:0 0 auto 0;top:0;left:0;width:100%;height:62vh;max-height:62vh;border:0;border-radius:0;object-fit:contain}
+.player.guide-open .player-top,.player.guide-open .player-bottom{display:none}
+.player.guide-open .player-shade{inset:0 0 38vh;background:linear-gradient(180deg,transparent 35%,#0008 52%,#07090d 65%,#07090d 100%)}
+.player.guide-open .live-guide{position:absolute;inset:auto 0 0;height:38vh;display:flex;flex-direction:column;gap:1vh;padding:1.2vh 3vw 1.5vh;background:linear-gradient(180deg,#10131a,#090b10);border-top:1px solid #3b3029}
+.player.guide-open .lg-head{margin:0;min-height:0;height:9vh;flex:none;display:flex;align-items:center}
+.player.guide-open .lg-info{padding:0 110px 0 0;justify-content:center}
+.player.guide-open .lg-chan-line{font-size:11px;letter-spacing:.14em}
+.player.guide-open .lg-title{font-size:clamp(19px,2vw,30px);line-height:1.08;margin:4px 0}
+.player.guide-open .lg-meta{font-size:12px;color:#cfc7bd}
+.player.guide-open .lg-overview{font-size:11px;line-height:1.25;margin:5px 0 0;max-width:78vw;-webkit-line-clamp:1}
+.player.guide-open .lg-clock{font-size:24px;top:0}
+.player.guide-open .lg-times{height:18px;min-height:18px;display:flex;align-items:center;justify-content:space-between;grid-template-columns:none;margin:0;font-size:10px;color:#9a9da5}
+.player.guide-open .lg-time-caption:last-child{color:var(--accent2)}
+.player.guide-open .lg-rows{flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;border:0;border-radius:0;background:transparent}
+.player.guide-open .lg-row{display:block;height:100%;min-height:0;border:0}
+.player.guide-open .lg-track{height:100%;display:flex;align-items:stretch;gap:10px;overflow-x:auto;overflow-y:hidden;padding:3px 5px 9px}
+.player.guide-open .lg-cell{position:relative;inset:auto;top:auto;bottom:auto;left:auto!important;flex:0 0 clamp(190px,20vw,300px);width:clamp(190px,20vw,300px)!important;height:100%;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:10px 14px;border:1px solid #303743;border-radius:6px;background:#1b202a;text-align:left;cursor:pointer}
+.player.guide-open .lg-cell small{font-size:11px;color:var(--accent2);letter-spacing:.04em}
+.player.guide-open .lg-cell strong{font-size:15px;line-height:1.2;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.player.guide-open .lg-cell em{font-style:normal;font-size:10px;color:#9699a1}
+.player.guide-open .lg-cell.now{border-color:#a87853;background:linear-gradient(120deg,#392b23,#20232b)}
+.player.guide-open .lg-cell.selected{outline:3px solid #ffd1a9;outline-offset:1px;box-shadow:0 0 0 5px #e4a9792b}
+.player.guide-open .lg-hint{flex:none;padding:0;gap:28px;justify-content:center;font-size:10px;letter-spacing:.08em;color:#9a9da5}
+.player.guide-open .lg-hint span:nth-child(3){color:var(--accent2)}
+.player.live.ui-hidden .player-toast{opacity:0}
+@media(max-height:700px){
+ .player.guide-open video{height:57vh;max-height:57vh}
+ .player.guide-open .player-shade{inset:0 0 43vh}
+ .player.guide-open .live-guide{height:43vh}
+ .player.guide-open .lg-head{height:10vh}
+ .player.guide-open .lg-overview{display:none}
+}
