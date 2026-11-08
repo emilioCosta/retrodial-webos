@@ -211,6 +211,28 @@ async function route(req,res) {
       return json(res, 200, { serverTime: now, timezone: TZ, channel: channelBrief(channel), entries });
     } catch (e) { return json(res, 502, { error: e.message }); }
   }
+  const playbackMatch=url.pathname.match(/^\/api\/playback\/([^/]+)$/);
+  if(playbackMatch){
+    try{
+      const itemId=decodeURIComponent(playbackMatch[1]);
+      const upstream=await jellyfin("/Users/"+encodeURIComponent(auth.userId)+"/Items/"+encodeURIComponent(itemId)+"?Fields=MediaSources");
+      if(!upstream.ok)return json(res,upstream.status,{error:"Não foi possível consultar as faixas do item"});
+      const item=await upstream.json(),source=(item.MediaSources||[])[0];
+      if(!source)return json(res,404,{error:"Nenhuma fonte de mídia encontrada"});
+      const streams=(source.MediaStreams||[]).filter(x=>x.Type==="Audio"||x.Type==="Subtitle").map(x=>({index:x.Index,type:x.Type,language:x.Language||"",title:x.DisplayTitle||x.Title||"",isDefault:!!x.IsDefault,isExternal:!!x.IsExternal,codec:x.Codec||""}));
+      return json(res,200,{mediaSourceId:source.Id,streams});
+    }catch(e){return json(res,502,{error:e.message});}
+  }
+  const subtitleMatch=url.pathname.match(/^\/api\/subtitles\/([^/]+)\/([^/]+)\/(\d+)\.vtt$/);
+  if(subtitleMatch){
+    try{
+      const itemId=decodeURIComponent(subtitleMatch[1]),sourceId=decodeURIComponent(subtitleMatch[2]),index=Number(subtitleMatch[3]);
+      const upstream=await jellyfin("/Videos/"+encodeURIComponent(itemId)+"/"+encodeURIComponent(sourceId)+"/Subtitles/"+index+"/Stream.vtt?api_key="+encodeURIComponent(auth.token));
+      if(!upstream.ok){res.writeHead(upstream.status,{"Access-Control-Allow-Origin":"*"});return res.end();}
+      res.writeHead(200,{"Content-Type":"text/vtt; charset=utf-8","Access-Control-Allow-Origin":"*","Cache-Control":"no-store"});
+      return res.end(await upstream.text());
+    }catch(e){return json(res,502,{error:e.message});}
+  }
   const imageMatch=url.pathname.match(/^\/api\/image\/([^/]+)$/);
   if (imageMatch) {
     try {
@@ -226,7 +248,7 @@ async function route(req,res) {
     try {
       const range=req.headers.range;
       const ctl=new AbortController();res.on("close",()=>ctl.abort());
-      const target="/Videos/"+encodeURIComponent(streamMatch[1])+"/stream?static=true&api_key="+encodeURIComponent(auth?.token || (await authenticate()).token);
+      const mediaSourceId=url.searchParams.get("mediaSourceId"),audioIndex=url.searchParams.get("audioIndex");let target="/Videos/"+encodeURIComponent(streamMatch[1])+"/stream?static=true&api_key="+encodeURIComponent(auth?.token || (await authenticate()).token);if(mediaSourceId)target+="&mediaSourceId="+encodeURIComponent(mediaSourceId);if(audioIndex!==null&&audioIndex!=="")target+="&AudioStreamIndex="+encodeURIComponent(audioIndex);
       const upstream=await jellyfin(target,{headers:range?{Range:range}:{},signal:ctl.signal});
       res.writeHead(upstream.status,{
         "Content-Type":upstream.headers.get("content-type")||"video/mp4",
