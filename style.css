@@ -79,3 +79,38 @@ body.tv-mode,body.tv-mode #player{background:#000}
  .player.guide-open .lg-head{height:10vh}
  .player.guide-open .lg-overview{display:none}
 }
+
+
+/* ---- 0.7.0: full multi-channel EPG overlay ---- */
+.player.guide-open video{inset:0!important;top:0!important;left:0!important;width:100%!important;height:100%!important;max-height:none!important;border:0!important;border-radius:0!important;object-fit:contain;opacity:.28}
+.player.guide-open .player-shade{display:block!important;inset:0!important;background:rgba(4,6,10,.28)!important}
+.player.guide-open .live-guide{inset:0!important;height:auto!important;padding:2.2vh 2.5vw 1.8vh!important;gap:1vh!important;background:rgba(7,9,14,.88)!important;border:0!important;backdrop-filter:blur(10px)}
+.player.guide-open .lg-head{height:13vh!important;min-height:0!important;margin:0!important;flex:none!important;align-items:center}
+.player.guide-open .lg-info{padding:0 130px 0 0!important}
+.player.guide-open .lg-chan-line{font-size:15px!important}
+.player.guide-open .lg-title{font-size:clamp(22px,2.2vw,36px)!important;margin:5px 0!important}
+.player.guide-open .lg-meta{font-size:13px!important}
+.player.guide-open .lg-overview{font-size:11px!important;max-width:75vw!important;margin:4px 0 0!important}
+.player.guide-open .lg-clock{font-size:27px!important}
+.player.guide-open .lg-times{height:25px!important;min-height:25px!important;display:flex!important;justify-content:space-between!important;margin:0!important;font-size:11px!important}
+.player.guide-open .lg-rows{flex:1!important;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;border:1px solid #353943!important;border-radius:7px!important;background:#0b0e14cc!important}
+.player.guide-open .lg-row{display:grid!important;grid-template-columns:190px minmax(0,1fr)!important;height:70px!important;min-height:70px!important;border-bottom:1px solid #2b3039!important}
+.player.guide-open .lg-row.sel{background:#2b2119!important;outline:2px solid #ffd1a9!important;outline-offset:-2px!important}
+.player.guide-open .lg-chan{display:flex!important;align-items:center!important;gap:10px!important;padding:0 12px!important;background:#151922dd!important;border-right:1px solid #353943!important;min-width:0!important}
+.player.guide-open .lg-chan b{font-size:19px!important;min-width:32px!important;color:#eab78e!important}
+.player.guide-open .lg-chan span{font-size:12px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.player.guide-open .lg-chan i{font-style:normal;color:#eab78e;margin-left:auto}
+.player.guide-open .lg-track{position:relative!important;height:100%!important;overflow:hidden!important;padding:0!important}
+.player.guide-open .lg-cell{position:absolute!important;top:5px!important;bottom:5px!important;left:auto;box-sizing:border-box!important;min-width:0!important;width:auto!important;height:auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:3px!important;padding:5px 8px!important;border:1px solid #3b424e!important;border-radius:4px!important;background:#1b202acc!important;text-align:left!important;overflow:hidden!important;cursor:default!important}
+.player.guide-open .lg-cell.now{background:#493326!important;border-color:#d39a6c!important}
+.player.guide-open .lg-cell.selected{outline:3px solid #ffd1a9!important;outline-offset:-2px!important;z-index:3!important;box-shadow:0 0 0 4px #e4a97930!important}
+.player.guide-open .lg-cell small{font-size:9px!important;white-space:nowrap!important;color:#e6b58e!important}
+.player.guide-open .lg-cell strong{font-size:11px!important;line-height:1.15!important;white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important}
+.player.guide-open .lg-cell em{font-size:8px!important;color:#c7b8aa!important;font-style:normal!important}
+.player.guide-open .lg-nowline{position:absolute!important;top:0!important;bottom:0!important;width:2px!important;background:#ff6258!important;z-index:2!important;pointer-events:none!important}
+.player.guide-open .lg-hint{flex:none!important;padding:0!important;gap:26px!important;font-size:10px!important;letter-spacing:.07em!important}
+@media(max-height:750px){
+ .player.guide-open .lg-head{height:11vh!important}
+ .player.guide-open .lg-overview{display:none!important}
+ .player.guide-open .lg-row{height:58px!important;min-height:58px!important}
+}
