@@ -182,9 +182,9 @@ function updateLiveInfo(){
 }
 function liveNext(){
  const L=state.live;if(!L)return;
- if(L.index+1<L.entries.length){playLive(L.index+1,0);return;}
+ if(L.index+1<L.entries.length){L.audioOverrideIndex=null;playLive(L.index+1,0);return;}
  const last=L.entries[L.entries.length-1];
- request("/channels/"+encodeURIComponent(L.channelId)+"/schedule?hours=6&from="+last.end).then(d=>{if(state.live!==L||!d.entries.length)return;syncClock(d.serverTime,d.timezone);L.entries=d.entries;playLive(0,0);}).catch(e=>playerToast(e.message));
+ request("/channels/"+encodeURIComponent(L.channelId)+"/schedule?hours=6&from="+last.end).then(d=>{if(state.live!==L||!d.entries.length)return;syncClock(d.serverTime,d.timezone);L.entries=d.entries;L.audioOverrideIndex=null;playLive(0,0);}).catch(e=>playerToast(e.message));
 }
 function toggleLiveSubtitles(){
  const tracks=[...$("video").querySelectorAll("track")];if(!tracks.length){playerToast("Não há legenda disponível para este programa");return;}
@@ -237,7 +237,7 @@ function onLiveKey(e,key,code){
   if(key==="ArrowDown"){e.preventDefault();selectGuide(state.guideRow+1,state.guideCol);return;}
   if(key==="ArrowLeft"){e.preventDefault();selectGuide(state.guideRow,state.guideCol-1);return;}
   if(key==="ArrowRight"){e.preventDefault();selectGuide(state.guideRow,state.guideCol+1);return;}
-  if(ok){e.preventDefault();const c=state.guideData.channels[state.guideRow];if(c&&c.id!==state.live.channelId)tune(c.id);else setGuide(false);return;}
+  if(ok){e.preventDefault();const c=state.guideData.channels[state.guideRow];if(c&&c.id!==state.live.channelId)tune(c.id,{guide:false});else setGuide(false);return;}
   return;
  }
  showLiveUi();
