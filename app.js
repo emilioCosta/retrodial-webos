@@ -142,15 +142,32 @@ async function tune(channelId,opts){
  if(state.guideOpen)renderLiveGuide();
  showLiveUi();
 }
-function playLive(index,offset){
+async function playLive(index,offset){
  const L=state.live;if(!L)return;
- L.index=index;const e=L.entries[index];const video=$("video");
- video.pause();video.src=API+"/stream/"+encodeURIComponent(e.item.id);video.load();
- video.onloadedmetadata=()=>{video.onloadedmetadata=null;if(offset>5&&Number.isFinite(video.duration)&&offset<video.duration-5){try{video.currentTime=offset;}catch(err){}}};
+ L.index=index;const e=L.entries[index],video=$("video"),token=(L.playToken||0)+1;L.playToken=token;
+ video.pause();video.removeAttribute("src");video.querySelectorAll("track").forEach(t=>t.remove());
+ let data={mediaSourceId:null,streams:[]};
+ try{data=await request("/playback/"+encodeURIComponent(e.item.id));}catch(err){}
+ if(state.live!==L||L.playToken!==token)return;
+ const tracks=data.streams||[],audio=tracks.filter(t=>t.type==="Audio"),subs=tracks.filter(t=>t.type==="Subtitle");
+ const lang=t=>String(t.language||"").toLowerCase().replace(/_/g,"-");
+ const rank=t=>{const l=lang(t);if(l==="pt"||l==="por"||l.startsWith("pt-"))return 0;if(l==="en"||l==="eng"||l.startsWith("en-"))return 1;return 2;};
+ const best=list=>list.slice().sort((a,b)=>rank(a)-rank(b)||(Number(b.isDefault)-Number(a.isDefault)))[0]||null;
+ const chosenAudio=audio.find(t=>t.index===L.audioOverrideIndex)||best(audio);
+ const audioLang=chosenAudio?lang(chosenAudio):"",isPt=audioLang==="pt"||audioLang==="por"||audioLang.startsWith("pt-");
+ const chosenSub=isPt?null:best(subs);
+ L.playbackTracks=tracks;L.selectedAudio=chosenAudio;L.selectedSubtitle=chosenSub;L.mediaSourceId=data.mediaSourceId||null;
+ const params=new URLSearchParams();if(L.mediaSourceId)params.set("mediaSourceId",L.mediaSourceId);if(chosenAudio&&chosenAudio.index!==undefined)params.set("audioIndex",String(chosenAudio.index));
+ let url=API+"/stream/"+encodeURIComponent(e.item.id);if([...params].length)url+="?"+params.toString();
+ if(chosenSub&&L.mediaSourceId){
+  const tr=document.createElement("track");tr.kind="subtitles";tr.label=chosenSub.title||chosenSub.language||"Legenda";tr.srclang=chosenSub.language||"pt";
+  tr.src=API+"/subtitles/"+encodeURIComponent(e.item.id)+"/"+encodeURIComponent(L.mediaSourceId)+"/"+encodeURIComponent(chosenSub.index)+".vtt";
+  tr.default=true;tr.addEventListener("load",()=>{try{tr.track.mode="showing";}catch(err){}});video.appendChild(tr);
+ }
+ video.src=url;video.load();
+ video.onloadedmetadata=()=>{video.onloadedmetadata=null;if(offset>2&&Number.isFinite(video.duration)&&offset<video.duration-2){try{video.currentTime=offset;}catch(err){}}};
  const p=video.play();if(p&&p.catch)p.catch(err=>{if(err&&err.name==="NotAllowedError"){L.needsGesture=true;playerToast("Pressione OK para iniciar a reprodução");}});
- $("progress-fill").style.width="0%";
- updateLiveInfo();
- if(state.guideOpen)renderLiveGuide();
+ $("progress-fill").style.width="0%";updateLiveInfo();if(state.guideOpen)renderLiveGuide();
 }
 function updateLiveInfo(){
  const L=state.live;if(!L)return;const e=L.entries[L.index],item=e.item,next=L.entries[L.index+1],ch=state.channel;
@@ -168,6 +185,15 @@ function liveNext(){
  if(L.index+1<L.entries.length){playLive(L.index+1,0);return;}
  const last=L.entries[L.entries.length-1];
  request("/channels/"+encodeURIComponent(L.channelId)+"/schedule?hours=6&from="+last.end).then(d=>{if(state.live!==L||!d.entries.length)return;syncClock(d.serverTime,d.timezone);L.entries=d.entries;playLive(0,0);}).catch(e=>playerToast(e.message));
+}
+function toggleLiveSubtitles(){
+ const tracks=[...$("video").querySelectorAll("track")];if(!tracks.length){playerToast("Não há legenda disponível para este programa");return;}
+ const showing=tracks.some(t=>t.track.mode==="showing");tracks.forEach(t=>{try{t.track.mode=showing?"disabled":"showing";}catch(e){}});playerToast(showing?"Legendas desligadas":"Legendas ligadas");
+}
+function cycleLiveAudio(){
+ const L=state.live;if(!L)return;const list=(L.playbackTracks||[]).filter(t=>t.type==="Audio");if(list.length<2){playerToast("Só há uma faixa de áudio disponível");return;}
+ const current=L.selectedAudio?.index,i=list.findIndex(t=>t.index===current),next=list[(i+1)%list.length];L.audioOverrideIndex=next.index;
+ const position=$("video").currentTime||0;playerToast("Áudio: "+(next.title||next.language||"outra faixa"));playLive(L.index,position);
 }
 function liveError(){
  const L=state.live;if(!L)return;L.errors=(L.errors||0)+1;
