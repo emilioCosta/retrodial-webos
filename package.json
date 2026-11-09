@@ -1,6 +1,6 @@
 {
   "name": "retrodial",
-  "version": "0.3.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Independent TV-first live channel interface backed by Jellyfin",
   "scripts": { "start": "node server/index.js" },
