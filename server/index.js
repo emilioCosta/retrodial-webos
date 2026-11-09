@@ -57,11 +57,24 @@ async function getLibrary(force = false) {
   const response = await jellyfin("/Users/" + encodeURIComponent(auth.userId) + "/Items?Recursive=true&IncludeItemTypes=Movie,Episode&Fields=" + fields + "&EnableTotalRecordCount=true&Limit=10000&SortBy=SortName");
   if (!response.ok) throw new Error("Jellyfin library request failed (HTTP " + response.status + ")");
   const data = await response.json();
-  libraryCache = { at: Date.now(), items: data.Items || [] };
+  const items = data.Items || [];
+  const seriesResponse = await jellyfin("/Users/" + encodeURIComponent(auth.userId) + "/Items?Recursive=true&IncludeItemTypes=Series&Fields=" + fields + "&EnableTotalRecordCount=true&Limit=1000&SortBy=SortName");
+  if (!seriesResponse.ok) throw new Error("Jellyfin series metadata request failed (HTTP " + seriesResponse.status + ")");
+  const seriesData = await seriesResponse.json();
+  const seriesById = new Map((seriesData.Items || []).map(x => [x.Id, x]));
+  for (const item of items) {
+    if (item.Type === "Episode" && item.SeriesId) item._series = seriesById.get(item.SeriesId) || null;
+  }
+  libraryCache = { at: Date.now(), items };
   channelsCache = { at: 0, channels: [] };
   return libraryCache.items;
 }
 const norm = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const editorialMeta = x => x && x.Type === "Episode" ? (x._series || x) : (x || {});
+const editorialGenres = x => editorialMeta(x).Genres || x.Genres || [];
+const editorialTags = x => editorialMeta(x).Tags || x.Tags || [];
+const editorialStudios = x => (editorialMeta(x).Studios || x.Studios || []).map(v => typeof v === "string" ? v : v.Name || "");
+const isAnimation = x => editorialGenres(x).some(g => /animation|animacao|cartoon|anime|kids|children/i.test(norm(g))) || editorialTags(x).some(t => /cartoon|animation|anime/i.test(norm(t)));
 function buildChannels(items) {
   const movies = items.filter(x => x.Type === "Movie");
   const episodes = items.filter(x => x.Type === "Episode").sort((a,b)=>String(a.SeriesName||"").localeCompare(String(b.SeriesName||""))||(a.ParentIndexNumber||0)-(b.ParentIndexNumber||0)||(a.IndexNumber||0)-(b.IndexNumber||0));
@@ -70,15 +83,21 @@ function buildChannels(items) {
     ["all","ACERVO COMPLETO","Tudo que existe na biblioteca",items],
     ["movies","CINEMA","Todos os filmes",movies],
     ["series","SÉRIES","Episódios de todas as séries",episodes],
-    ["animation","ANIMAÇÃO","Filmes e episódios de animação",items.filter(x=>(x.Genres||[]).some(g=>/animation|animacao|cartoon|anime|kids|children/i.test(g)))],
-    ["anime","ANIME","Conteúdo identificado como anime",items.filter(x=>(x.Genres||[]).some(g=>/anime/i.test(g)) || /anime/i.test((x.Tags||[]).join(" ")))],
-    ["comedy","COMÉDIA","Filmes e séries de comédia",items.filter(x=>(x.Genres||[]).some(g=>/comedy|comedia/i.test(g)))],
-    ["action","AÇÃO E AVENTURA","Ação, aventura e super-heróis",items.filter(x=>(x.Genres||[]).some(g=>/action|adventure|acao|aventura|superhero/i.test(g)))],
-    ["drama","DRAMA","Histórias dramáticas",items.filter(x=>(x.Genres||[]).some(g=>/drama/i.test(g)))],
-    ["scifi","FICÇÃO CIENTÍFICA","Sci-fi e fantasia",items.filter(x=>(x.Genres||[]).some(g=>/science fiction|sci-fi|fantasy|fantasia/i.test(g)))],
-    ["crime","CRIME E MISTÉRIO","Crime, suspense e mistério",items.filter(x=>(x.Genres||[]).some(g=>/crime|mystery|thriller|policial|suspense/i.test(g)))],
-    ["documentary","DOCUMENTÁRIOS","Documentários",items.filter(x=>(x.Genres||[]).some(g=>/documentary|documentario/i.test(g)))],
-    ["family","FAMÍLIA","Conteúdo familiar e infantil",items.filter(x=>(x.Genres||[]).some(g=>/family|familia|kids|children|animation/i.test(g)))],
+    ["animation","ANIMAÇÃO","Filmes e episódios de animação",items.filter(isAnimation)],
+    ["anime","ANIME","Conteúdo identificado como anime",items.filter(x=>editorialGenres(x).some(g=>/anime/i.test(norm(g))) || /anime/i.test(editorialTags(x).join(" ")))],
+    ["comedy","COMÉDIA","Filmes e séries de comédia",items.filter(x=>editorialGenres(x).some(g=>/comedy|comedia/i.test(norm(g))))],
+    ["action","AÇÃO E AVENTURA","Ação, aventura e super-heróis",items.filter(x=>editorialGenres(x).some(g=>/action|adventure|acao|aventura|superhero/i.test(norm(g))))],
+    ["drama","DRAMA","Histórias dramáticas",items.filter(x=>editorialGenres(x).some(g=>/drama/i.test(norm(g))))],
+    ["scifi","FICÇÃO CIENTÍFICA","Sci-fi e fantasia",items.filter(x=>editorialGenres(x).some(g=>/science fiction|sci-fi|fantasy|fantasia/i.test(norm(g))))],
+    ["crime","CRIME E MISTÉRIO","Crime, suspense e mistério",items.filter(x=>editorialGenres(x).some(g=>/crime|mystery|thriller|policial|suspense/i.test(norm(g))))],
+    ["documentary","DOCUMENTÁRIOS","Documentários",items.filter(x=>editorialGenres(x).some(g=>/documentary|documentario/i.test(norm(g))))],
+    ["family","FAMÍLIA","Conteúdo familiar e infantil",items.filter(x=>editorialGenres(x).some(g=>/family|familia|kids|children|animation|animacao/i.test(norm(g))))],
+    ["cartoon-network-2000s","CARTOON NETWORK 2000s","Desenhos do Cartoon Network, com identidade dos anos 2000",episodes.filter(x=>editorialStudios(x).some(s=>/cartoon network/i.test(s)) || norm(x.SeriesName)==="a vaca e o frango")],
+    ["nickelodeon","NICKELODEON","Animações da Nickelodeon e Nicktoons",episodes.filter(x=>editorialStudios(x).some(s=>/nickelodeon|nicktoons/i.test(s)))],
+    ["disney","DISNEY","Animações do Disney Channel e Disney XD",episodes.filter(x=>editorialStudios(x).some(s=>/disney channel|disney xd|disney television animation/i.test(s)))],
+    ["warner-kids","WARNER KIDS","Animações da Warner e The WB",episodes.filter(x=>isAnimation(x)&&editorialStudios(x).some(s=>/the wb|warner/i.test(s)))],
+    ["tv-globinho","TV GLOBINHO","Seleção infantil variada em clima de programação de TV",episodes.filter(x=>isAnimation(x)&&editorialGenres(x).some(g=>/kids|children|family|familia/i.test(norm(g))))],
+    ["classicos-animacao","CLÁSSICOS DA ANIMAÇÃO","Desenhos clássicos e animações de catálogo",episodes.filter(x=>isAnimation(x)&&((Number(editorialMeta(x).ProductionYear||x.ProductionYear)||0)>0&&(Number(editorialMeta(x).ProductionYear||x.ProductionYear)||0)<1980 || editorialStudios(x).some(s=>/hanna.barbera|syndication/i.test(s))))],
     ...[...new Set(items.map(x=>Number(x.ProductionYear)).filter(y=>y>=1950))].sort((a,b)=>Math.floor(a/10)-Math.floor(b/10)).reduce((acc,y)=>{
       const decade=Math.floor(y/10)*10, id="decade-"+decade;
       if(!acc.some(c=>c[0]===id))acc.push([id,"ANOS "+String(decade).slice(2), "Títulos lançados entre "+decade+" e "+(decade+9),items.filter(x=>Number(x.ProductionYear)>=decade&&Number(x.ProductionYear)<decade+10)]);
@@ -97,7 +116,9 @@ function buildChannels(items) {
   });
 }
 function itemSummary(x) {
-  return { id:x.Id,name:x.Name,type:x.Type,year:x.ProductionYear||null,series:x.SeriesName||null,genres:x.Genres||[],studios:x.Studios||[],tags:x.Tags||[],providerIds:x.ProviderIds||{},overview:x.Overview||"",runtimeTicks:x.RunTimeTicks||0,season:x.ParentIndexNumber||null,episode:x.IndexNumber||null };
+  const meta = editorialMeta(x);
+  const studios = editorialStudios(x);
+  return { id:x.Id,name:x.Name,type:x.Type,year:x.ProductionYear||meta.ProductionYear||null,series:x.SeriesName||null,genres:editorialGenres(x),studios,tags:editorialTags(x),providerIds:meta.ProviderIds||x.ProviderIds||{},overview:x.Overview||meta.Overview||"",runtimeTicks:x.RunTimeTicks||0,season:x.ParentIndexNumber||null,episode:x.IndexNumber||null };
 }
 function getChannels(items) {
   if (channelsCache.channels.length && channelsCache.items === items) return channelsCache.channels;
