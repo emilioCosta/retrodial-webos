@@ -142,6 +142,17 @@ async function tune(channelId,opts){
  if(state.guideOpen)renderLiveGuide();
  showLiveUi();
 }
+function addLiveSubtitleCandidate(L,video,itemId,sourceId,candidates,token,index){
+ if(state.live!==L||L.playToken!==token)return;
+ if(index>=candidates.length){L.selectedSubtitle=null;return;}
+ const candidate=candidates[index],tr=document.createElement("track");
+ tr.kind="subtitles";tr.label=candidate.title||candidate.language||"Legenda";tr.srclang=candidate.language||"pt";
+ tr.src=API+"/subtitles/"+encodeURIComponent(itemId)+"/"+encodeURIComponent(sourceId)+"/"+encodeURIComponent(candidate.index)+".vtt";
+ tr.default=true;
+ tr.addEventListener("load",()=>{if(state.live!==L||L.playToken!==token)return;try{tr.track.mode="showing";L.selectedSubtitle=candidate;}catch(err){tr.remove();addLiveSubtitleCandidate(L,video,itemId,sourceId,candidates,token,index+1);}});
+ tr.addEventListener("error",()=>{tr.remove();addLiveSubtitleCandidate(L,video,itemId,sourceId,candidates,token,index+1);});
+ video.appendChild(tr);
+}
 async function playLive(index,offset){
  const L=state.live;if(!L)return;
  L.index=index;const e=L.entries[index],video=$("video"),token=(L.playToken||0)+1;L.playToken=token;
@@ -150,20 +161,16 @@ async function playLive(index,offset){
  try{data=await request("/playback/"+encodeURIComponent(e.item.id));}catch(err){}
  if(state.live!==L||L.playToken!==token)return;
  const tracks=data.streams||[],audio=tracks.filter(t=>t.type==="Audio"),subs=tracks.filter(t=>t.type==="Subtitle");
- const lang=t=>String(t.language||"").toLowerCase().replace(/_/g,"-");
- const rank=t=>{const l=lang(t);if(l==="pt"||l==="por"||l.startsWith("pt-"))return 0;if(l==="en"||l==="eng"||l.startsWith("en-"))return 1;return 2;};
- const best=list=>list.slice().sort((a,b)=>rank(a)-rank(b)||(Number(b.isDefault)-Number(a.isDefault)))[0]||null;
+ const trackText=t=>[t.language,t.title].filter(Boolean).join(" ").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/_/g,"-");
+ const rank=t=>{const s=trackText(t);if(/(^|[^a-z])(?:por|pt(?:-br|-pt)?|portugues|portuguese|brazilian portuguese|portuguese brazil)(?=$|[^a-z])/.test(s))return 0;if(/(^|[^a-z])(?:eng|en|english)(?=$|[^a-z])/.test(s))return 1;return 2;};
+ const best=list=>list.map((t,i)=>({t,i})).sort((a,b)=>rank(a.t)-rank(b.t)||(Number(b.t.isDefault)-Number(a.t.isDefault))||a.i-b.i).map(x=>x.t)[0]||null;
  const chosenAudio=audio.find(t=>t.index===L.audioOverrideIndex)||best(audio);
- const audioLang=chosenAudio?lang(chosenAudio):"",isPt=audioLang==="pt"||audioLang==="por"||audioLang.startsWith("pt-");
- const chosenSub=isPt?null:best(subs);
- L.playbackTracks=tracks;L.selectedAudio=chosenAudio;L.selectedSubtitle=chosenSub;L.mediaSourceId=data.mediaSourceId||null;
+ const isPt=!!chosenAudio&&rank(chosenAudio)===0;
+ const subtitleOptions=isPt?[]:subs.map((t,i)=>({t,i})).sort((a,b)=>rank(a.t)-rank(b.t)||(Number(b.t.isDefault)-Number(a.t.isDefault))||a.i-b.i).map(x=>x.t);
+ L.playbackTracks=tracks;L.selectedAudio=chosenAudio;L.selectedSubtitle=null;L.mediaSourceId=data.mediaSourceId||null;
  const params=new URLSearchParams();if(L.mediaSourceId)params.set("mediaSourceId",L.mediaSourceId);if(chosenAudio&&chosenAudio.index!==undefined)params.set("audioIndex",String(chosenAudio.index));
  let url=API+"/stream/"+encodeURIComponent(e.item.id);if([...params].length)url+="?"+params.toString();
- if(chosenSub&&L.mediaSourceId){
-  const tr=document.createElement("track");tr.kind="subtitles";tr.label=chosenSub.title||chosenSub.language||"Legenda";tr.srclang=chosenSub.language||"pt";
-  tr.src=API+"/subtitles/"+encodeURIComponent(e.item.id)+"/"+encodeURIComponent(L.mediaSourceId)+"/"+encodeURIComponent(chosenSub.index)+".vtt";
-  tr.default=true;tr.addEventListener("load",()=>{try{tr.track.mode="showing";}catch(err){}});video.appendChild(tr);
- }
+ if(subtitleOptions.length&&L.mediaSourceId)addLiveSubtitleCandidate(L,video,e.item.id,L.mediaSourceId,subtitleOptions,token,0);
  video.src=url;video.load();
  video.onloadedmetadata=()=>{video.onloadedmetadata=null;if(offset>2&&Number.isFinite(video.duration)&&offset<video.duration-2){try{video.currentTime=offset;}catch(err){}}};
  const p=video.play();if(p&&p.catch)p.catch(err=>{if(err&&err.name==="NotAllowedError"){L.needsGesture=true;playerToast("Pressione OK para iniciar a reprodução");}});
