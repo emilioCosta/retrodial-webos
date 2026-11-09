@@ -219,7 +219,7 @@ async function route(req,res) {
       if(!upstream.ok)return json(res,upstream.status,{error:"Não foi possível consultar as faixas do item"});
       const item=await upstream.json(),source=(item.MediaSources||[])[0];
       if(!source)return json(res,404,{error:"Nenhuma fonte de mídia encontrada"});
-      const streams=(source.MediaStreams||[]).filter(x=>x.Type==="Audio"||x.Type==="Subtitle").map(x=>({index:x.Index,type:x.Type,language:x.Language||"",title:x.DisplayTitle||x.Title||"",isDefault:!!x.IsDefault,isExternal:!!x.IsExternal,codec:x.Codec||""}));
+      const streams=(source.MediaStreams||[]).filter(x=>x.Type==="Audio"||x.Type==="Subtitle").map(x=>({index:x.Index,type:x.Type,language:x.Language||x.LanguageTag||"",title:x.DisplayTitle||x.Title||x.Name||"",isDefault:!!x.IsDefault,isExternal:!!x.IsExternal,codec:x.Codec||""}));
       return json(res,200,{mediaSourceId:source.Id,streams});
     }catch(e){return json(res,502,{error:e.message});}
   }
